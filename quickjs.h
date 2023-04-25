@@ -93,8 +93,6 @@ typedef struct JSRefCountHeader {
 
 #define JS_FLOAT64_NAN NAN
 
-
-
 //not define here
 #ifdef CONFIG_CHECK_JSVALUE
 /* JSValue consistency : it is not possible to run the code in this
@@ -335,8 +333,8 @@ typedef struct JSGCObjectHeader JSGCObjectHeader;
 
 JSRuntime *JS_NewRuntime(void);
 /* info lifetime must exceed that of rt */
-void JS_SetRuntimeInfo(JSRuntime *rt, const char *info);
-void JS_SetMemoryLimit(JSRuntime *rt, size_t limit);
+void JS_SetRuntimeInfo(JSRuntime *rt, const char *info);                //call once in runtest262
+void JS_SetMemoryLimit(JSRuntime *rt, size_t limit);                    //call once in qjs.c    
 void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold);
 /* use 0 to disable maximum stack size check */
 void JS_SetMaxStackSize(JSRuntime *rt, size_t stack_size);
@@ -375,13 +373,6 @@ void JS_AddIntrinsicProxy(JSContext *ctx);
 void JS_AddIntrinsicMapSet(JSContext *ctx);
 void JS_AddIntrinsicTypedArrays(JSContext *ctx);
 void JS_AddIntrinsicPromise(JSContext *ctx);
-void JS_AddIntrinsicBigInt(JSContext *ctx);
-void JS_AddIntrinsicBigFloat(JSContext *ctx);
-void JS_AddIntrinsicBigDecimal(JSContext *ctx);
-/* enable operator overloading */
-void JS_AddIntrinsicOperators(JSContext *ctx);
-/* enable "use math" */
-void JS_EnableBignumExt(JSContext *ctx, JS_BOOL enable);
 
 JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv);
