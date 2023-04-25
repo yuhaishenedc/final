@@ -1,0 +1,166 @@
+ck0 time cost is 36
+ck1 time cost is 2442
+ck2 time cost is 4791
+ck3 time cost is 6836
+1 time cost is 6924
+next_token line number is 1 && time cost is 3941
+next_token line number is 1 && time cost is 1536
+next_token line number is 1 && time cost is 194
+next_token line number is 1 && time cost is 61
+next_token line number is 1 && time cost is 43
+next_token line number is 1 && time cost is 33
+next_token line number is 1 && time cost is 42
+next_token line number is 1 && time cost is 43
+next_token line number is 1 && time cost is 289
+next_token line number is 3 && time cost is 578
+        line number is 3
+ck1 time cost is 22
+next_token line number is 3 && time cost is 207
+ck2 time cost is 1740
+ck3 time cost is 3352
+ck3.1 time cost is 3456
+ck3.1 time cost is 3554
+next_token line number is 3 && time cost is 12183
+ck3.2 time cost is 15930
+ck4 time cost is 16043
+ck5 time cost is 16403
+ck6 time cost is 16666
+ck7 time cost is 16803
+next_token line number is 3 && time cost is 103
+parse var && time cost is 22590
+
+next_token line number is 3 && time cost is 312
+next_token line number is 5 && time cost is 382
+next_token line number is 5 && time cost is 81
+next_token line number is 5 && time cost is 44
+next_token line number is 5 && time cost is 33
+next_token line number is 5 && time cost is 32
+next_token line number is 5 && time cost is 33
+next_token line number is 5 && time cost is 32
+next_token line number is 5 && time cost is 92
+next_token line number is 6 && time cost is 211
+next_token line number is 6 && time cost is 68
+next_token line number is 6 && time cost is 333
+next_token line number is 6 && time cost is 204
+next_token line number is 6 && time cost is 33
+next_token line number is 6 && time cost is 126
+next_token line number is 8 && time cost is 32
+next_token line number is 8 && time cost is 52
+next_token line number is 6 && time cost is 31
+next_token line number is 6 && time cost is 185
+next_token line number is 6 && time cost is 46
+next_token line number is 6 && time cost is 365
+next_token line number is 6 && time cost is 145
+next_token line number is 6 && time cost is 35
+next_token line number is 6 && time cost is 32
+next_token line number is 6 && time cost is 265
+next_token line number is 6 && time cost is 67
+next_token line number is 6 && time cost is 48
+next_token line number is 6 && time cost is 80
+next_token line number is 8 && time cost is 32
+next_token line number is 8 && time cost is 57
+next_token line number is 9 && time cost is 33
+next_token line number is 9 && time cost is 365
+next_token line number is 10 && time cost is 208
+next_token line number is 10 && time cost is 61
+next_token line number is 11 && time cost is 180
+next_token line number is 11 && time cost is 47
+next_token line number is 11 && time cost is 302
+next_token line number is 11 && time cost is 126
+next_token line number is 11 && time cost is 36
+next_token line number is 11 && time cost is 482
+next_token line number is 12 && time cost is 108
+next_token line number is 12 && time cost is 414
+next_token line number is 12 && time cost is 114
+next_token line number is 12 && time cost is 460
+next_token line number is 13 && time cost is 96
+next_token line number is 13 && time cost is 351
+next_token line number is 13 && time cost is 82
+next_token line number is 13 && time cost is 343
+next_token line number is 14 && time cost is 91
+next_token line number is 14 && time cost is 323
+next_token line number is 14 && time cost is 79
+next_token line number is 14 && time cost is 389
+next_token line number is 15 && time cost is 92
+next_token line number is 15 && time cost is 324
+next_token line number is 15 && time cost is 79
+next_token line number is 15 && time cost is 431
+next_token line number is 16 && time cost is 91
+next_token line number is 16 && time cost is 326
+next_token line number is 16 && time cost is 78
+next_token line number is 16 && time cost is 49
+next_token line number is 17 && time cost is 33
+next_token line number is 17 && time cost is 54
+next_token line number is 18 && time cost is 32
+next_token line number is 9 && time cost is 33
+next_token line number is 9 && time cost is 394
+next_token line number is 10 && time cost is 69
+next_token line number is 10 && time cost is 101
+next_token line number is 11 && time cost is 182
+next_token line number is 11 && time cost is 58
+next_token line number is 11 && time cost is 356
+next_token line number is 11 && time cost is 100
+next_token line number is 11 && time cost is 33
+next_token line number is 11 && time cost is 386
+next_token line number is 12 && time cost is 91
+next_token line number is 12 && time cost is 384
+next_token line number is 12 && time cost is 82
+next_token line number is 12 && time cost is 471
+next_token line number is 13 && time cost is 92
+next_token line number is 13 && time cost is 330
+next_token line number is 13 && time cost is 78
+next_token line number is 13 && time cost is 461
+next_token line number is 14 && time cost is 92
+next_token line number is 14 && time cost is 328
+next_token line number is 14 && time cost is 81
+next_token line number is 14 && time cost is 418
+next_token line number is 15 && time cost is 91
+next_token line number is 15 && time cost is 325
+next_token line number is 15 && time cost is 77
+next_token line number is 15 && time cost is 409
+next_token line number is 16 && time cost is 92
+next_token line number is 16 && time cost is 332
+next_token line number is 16 && time cost is 78
+next_token line number is 16 && time cost is 70
+next_token line number is 17 && time cost is 33
+next_token line number is 17 && time cost is 53
+next_token line number is 11 && time cost is 59
+next_token line number is 11 && time cost is 157
+next_token line number is 11 && time cost is 55
+next_token line number is 11 && time cost is 307
+next_token line number is 11 && time cost is 113
+next_token line number is 11 && time cost is 37
+next_token line number is 11 && time cost is 50
+next_token line number is 11 && time cost is 311
+next_token line number is 11 && time cost is 80
+next_token line number is 11 && time cost is 37
+next_token line number is 11 && time cost is 401
+next_token line number is 12 && time cost is 84
+next_token line number is 12 && time cost is 343
+next_token line number is 12 && time cost is 53
+next_token line number is 12 && time cost is 413
+next_token line number is 13 && time cost is 69
+next_token line number is 13 && time cost is 345
+next_token line number is 13 && time cost is 100
+next_token line number is 13 && time cost is 392
+next_token line number is 14 && time cost is 56
+next_token line number is 14 && time cost is 358
+next_token line number is 14 && time cost is 97
+next_token line number is 14 && time cost is 386
+next_token line number is 15 && time cost is 54
+next_token line number is 15 && time cost is 330
+next_token line number is 15 && time cost is 86
+next_token line number is 15 && time cost is 425
+next_token line number is 16 && time cost is 54
+next_token line number is 16 && time cost is 333
+next_token line number is 16 && time cost is 87
+next_token line number is 16 && time cost is 49
+next_token line number is 17 && time cost is 36
+next_token line number is 17 && time cost is 47
+next_token line number is 18 && time cost is 36
+next_token line number is 18 && time cost is 41
+next_token line number is 19 && time cost is 35
+next_token line number is 20 && time cost is 145
+2 time cost is 113286
+3 time cost is 142730
+4 time cost is 158108

@@ -115,7 +115,7 @@
 #endif
 
 #define PREPARSER
-#define PRINTER
+//#define PRINTER
 //#define PRINTGC
 //#define PRINTCALL
 //#define PRINTFREE
@@ -1662,13 +1662,6 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
     rt->malloc_state = ms;
     rt->malloc_gc_threshold = 256 * 1024;
 
-#ifdef CONFIG_BIGNUM
-    bf_context_init(&rt->bf_ctx, js_bf_realloc, rt);
-    set_dummy_numeric_ops(&rt->bigint_ops);
-    set_dummy_numeric_ops(&rt->bigfloat_ops);
-    set_dummy_numeric_ops(&rt->bigdecimal_ops);
-#endif
-
     init_list_head(&rt->context_list);
     init_list_head(&rt->gc_obj_list);
     init_list_head(&rt->gc_zero_ref_count_list);
@@ -2071,10 +2064,6 @@ void JS_FreeRuntime(JSRuntime *rt)
     }
     js_free_rt(rt, rt->class_array);
 
-#ifdef CONFIG_BIGNUM
-    bf_context_end(&rt->bf_ctx);
-#endif
-
 #ifdef DUMP_LEAKS
     /* only the atoms defined in JS_InitAtoms() should be left */
     {
@@ -2219,11 +2208,6 @@ JSContext *JS_NewContextRaw(JSRuntime *rt)
     }
     ctx->rt = rt;
     list_add_tail(&ctx->link, &rt->context_list);
-#ifdef CONFIG_BIGNUM
-    ctx->bf_ctx = &rt->bf_ctx;
-    ctx->fp_env.prec = 113;
-    ctx->fp_env.flags = bf_set_exp_bits(15) | BF_RNDN | BF_FLAG_SUBNORMAL;
-#endif
     for(i = 0; i < rt->class_count; i++)
         ctx->class_proto[i] = JS_NULL;
     ctx->array_ctor = JS_NULL;
@@ -2259,9 +2243,6 @@ JSContext *JS_NewContext(JSRuntime *rt)
     JS_AddIntrinsicMapSet(ctx);
     JS_AddIntrinsicTypedArrays(ctx);
     JS_AddIntrinsicPromise(ctx);
-#ifdef CONFIG_BIGNUM
-    JS_AddIntrinsicBigInt(ctx);
-#endif
     #ifdef PRINTER
         printf("    2 exit JS_NewContext\n");
     #endif
@@ -2505,14 +2486,6 @@ static inline BOOL is_strict_mode(JSContext *ctx)
     JSStackFrame *sf = ctx->rt->current_stack_frame;
     return (sf && (sf->js_mode & JS_MODE_STRICT));
 }
-
-#ifdef CONFIG_BIGNUM
-static inline BOOL is_math_mode(JSContext *ctx)
-{
-    JSStackFrame *sf = ctx->rt->current_stack_frame;
-    return (sf && (sf->js_mode & JS_MODE_MATH));
-}
-#endif
 
 /* JSAtom support */
 
@@ -5028,10 +5001,6 @@ static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID clas
     case JS_CLASS_UINT16_ARRAY:
     case JS_CLASS_INT32_ARRAY:
     case JS_CLASS_UINT32_ARRAY:
-#ifdef CONFIG_BIGNUM
-    case JS_CLASS_BIG_INT64_ARRAY:
-    case JS_CLASS_BIG_UINT64_ARRAY:
-#endif
     case JS_CLASS_FLOAT32_ARRAY:
     case JS_CLASS_FLOAT64_ARRAY:
         p->is_exotic = 1;
@@ -5048,11 +5017,6 @@ static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID clas
     case JS_CLASS_BOOLEAN:
     case JS_CLASS_SYMBOL:
     case JS_CLASS_DATE:
-#ifdef CONFIG_BIGNUM
-    case JS_CLASS_BIG_INT:
-    case JS_CLASS_BIG_FLOAT:
-    case JS_CLASS_BIG_DECIMAL:
-#endif
         p->u.object_data = JS_UNDEFINED;
         goto set_exotic;
     case JS_CLASS_REGEXP:
@@ -5106,31 +5070,6 @@ JSValue JS_NewObjectProtoClass(JSContext *ctx, JSValueConst proto_val,
     return JS_NewObjectFromShape(ctx, sh, class_id);
 }
 
-#if 0
-static JSValue JS_GetObjectData(JSContext *ctx, JSValueConst obj)
-{
-    JSObject *p;
-
-    if (JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT) {
-        p = JS_VALUE_GET_OBJ(obj);
-        switch(p->class_id) {
-        case JS_CLASS_NUMBER:
-        case JS_CLASS_STRING:
-        case JS_CLASS_BOOLEAN:
-        case JS_CLASS_SYMBOL:
-        case JS_CLASS_DATE:
-#ifdef CONFIG_BIGNUM
-        case JS_CLASS_BIG_INT:
-        case JS_CLASS_BIG_FLOAT:
-        case JS_CLASS_BIG_DECIMAL:
-#endif
-            return JS_DupValue(ctx, p->u.object_data);
-        }
-    }
-    return JS_UNDEFINED;
-}
-#endif
-
 static int JS_SetObjectData(JSContext *ctx, JSValueConst obj, JSValue val)
 {
     JSObject *p;
@@ -5143,11 +5082,6 @@ static int JS_SetObjectData(JSContext *ctx, JSValueConst obj, JSValue val)
         case JS_CLASS_BOOLEAN:
         case JS_CLASS_SYMBOL:
         case JS_CLASS_DATE:
-#ifdef CONFIG_BIGNUM
-        case JS_CLASS_BIG_INT:
-        case JS_CLASS_BIG_FLOAT:
-        case JS_CLASS_BIG_DECIMAL:
-#endif
             JS_FreeValue(ctx, p->u.object_data);
             p->u.object_data = val;
             return 0;
@@ -5972,23 +5906,6 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
     case JS_TAG_MODULE:
         abort(); /* never freed here */
         break;
-#ifdef CONFIG_BIGNUM
-    case JS_TAG_BIG_INT:
-    case JS_TAG_BIG_FLOAT:
-        {
-            JSBigFloat *bf = JS_VALUE_GET_PTR(v);
-            bf_delete(&bf->num);
-            js_free_rt(rt, bf);
-        }
-        break;
-    case JS_TAG_BIG_DECIMAL:
-        {
-            JSBigDecimal *bf = JS_VALUE_GET_PTR(v);
-            bfdec_delete(&bf->num);
-            js_free_rt(rt, bf);
-        }
-        break;
-#endif
     case JS_TAG_SYMBOL:
         {
             JSAtomStruct *p = JS_VALUE_GET_PTR(v);
