@@ -335,35 +335,32 @@ JSRuntime *JS_NewRuntime(void);
 /* info lifetime must exceed that of rt */
 void JS_SetRuntimeInfo(JSRuntime *rt, const char *info);                //call once in runtest262
 void JS_SetMemoryLimit(JSRuntime *rt, size_t limit);                    //call once in qjs.c    
-//void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold);             //not called?
 /* use 0 to disable maximum stack size check */
-void JS_SetMaxStackSize(JSRuntime *rt, size_t stack_size);
+void JS_SetMaxStackSize(JSRuntime *rt, size_t stack_size);              //use once in qjs.c
 /* should be called when changing thread to update the stack top value
    used to check stack overflow. */
-void JS_UpdateStackTop(JSRuntime *rt);
-JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque);
-void JS_FreeRuntime(JSRuntime *rt);
-void *JS_GetRuntimeOpaque(JSRuntime *rt);
-void JS_SetRuntimeOpaque(JSRuntime *rt, void *opaque);
-typedef void JS_MarkFunc(JSRuntime *rt, JSGCObjectHeader *gp);
-void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func);
-void JS_RunGC(JSRuntime *rt);
-JS_BOOL JS_IsLiveObject(JSRuntime *rt, JSValueConst obj);
+void JS_UpdateStackTop(JSRuntime *rt);                                  //use once in quickjs.c
+JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque);   //use once in qjs.c and quickjs.c
+void JS_FreeRuntime(JSRuntime *rt);                                     //further process
+void *JS_GetRuntimeOpaque(JSRuntime *rt);                               //use in quickjs-libc.c 
+void JS_SetRuntimeOpaque(JSRuntime *rt, void *opaque);                  //use in quickjs-libc.c
+typedef void JS_MarkFunc(JSRuntime *rt, JSGCObjectHeader *gp);          //use once in libc.c and multiple in quickjs.c       
+void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func); //use once in libc.c
+void JS_RunGC(JSRuntime *rt);                                           //further process
 
-JSContext *JS_NewContext(JSRuntime *rt);
-void JS_FreeContext(JSContext *s);
-JSContext *JS_DupContext(JSContext *ctx);
-void *JS_GetContextOpaque(JSContext *ctx);
-void JS_SetContextOpaque(JSContext *ctx, void *opaque);
-JSRuntime *JS_GetRuntime(JSContext *ctx);
-void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj);
-JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);
+JSContext *JS_NewContext(JSRuntime *rt);                                //further process
+void JS_FreeContext(JSContext *s);                                      //further process
+void *JS_GetContextOpaque(JSContext *ctx);                              //further process
+void JS_SetContextOpaque(JSContext *ctx, void *opaque);                 //furhter process
+JSRuntime *JS_GetRuntime(JSContext *ctx);                               //further process
+void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj); //furhter process
+JSValue JS_GetClassProto(JSContext *ctx, JSClassID class_id);           //further process
 
 /* the following functions are used to select the intrinsic object to
    save memory */
-JSContext *JS_NewContextRaw(JSRuntime *rt);
-void JS_AddIntrinsicBaseObjects(JSContext *ctx);
-void JS_AddIntrinsicDate(JSContext *ctx);
+JSContext *JS_NewContextRaw(JSRuntime *rt);                             //use 
+void JS_AddIntrinsicBaseObjects(JSContext *ctx);                        //use once
+void JS_AddIntrinsicDate(JSContext *ctx);                               //here and follow need further process
 void JS_AddIntrinsicEval(JSContext *ctx);
 void JS_AddIntrinsicStringNormalize(JSContext *ctx);
 void JS_AddIntrinsicRegExpCompiler(JSContext *ctx);
@@ -374,10 +371,7 @@ void JS_AddIntrinsicMapSet(JSContext *ctx);
 void JS_AddIntrinsicTypedArrays(JSContext *ctx);
 void JS_AddIntrinsicPromise(JSContext *ctx);
 
-JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv);
-
-void *js_malloc_rt(JSRuntime *rt, size_t size);
+//void *js_malloc_rt(JSRuntime *rt, size_t size);
 void js_free_rt(JSRuntime *rt, void *ptr);
 void *js_realloc_rt(JSRuntime *rt, void *ptr, size_t size);
 size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr);
@@ -569,18 +563,6 @@ static inline JS_BOOL JS_IsBigInt(JSContext *ctx, JSValueConst v)
 {
     int tag = JS_VALUE_GET_TAG(v);
     return tag == JS_TAG_BIG_INT;
-}
-
-static inline JS_BOOL JS_IsBigFloat(JSValueConst v)
-{
-    int tag = JS_VALUE_GET_TAG(v);
-    return tag == JS_TAG_BIG_FLOAT;
-}
-
-static inline JS_BOOL JS_IsBigDecimal(JSValueConst v)
-{
-    int tag = JS_VALUE_GET_TAG(v);
-    return tag == JS_TAG_BIG_DECIMAL;
 }
 
 static inline JS_BOOL JS_IsBool(JSValueConst v)

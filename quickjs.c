@@ -112,9 +112,9 @@
 #endif
 
 #define PREPARSER
-#define PRINTER
+//#define PRINTER
 //#define PRINTGC
-#define PRINTCALL
+//#define PRINTCALL
 //#define PRINTFREE
 //#define PRINTATOM
 //#define PRINTRESOLVEVARIABLES
@@ -1215,7 +1215,7 @@ static size_t js_malloc_usable_size_unknown(const void *ptr)
     return 0;
 }
 
-void *js_malloc_rt(JSRuntime *rt, size_t size)
+static void *js_malloc_rt(JSRuntime *rt, size_t size)
 {
     return rt->mf.js_malloc(&rt->malloc_state, size);
 }
@@ -2125,7 +2125,7 @@ static void js_free_modules(JSContext *ctx, JSFreeModuleEnum flag)
     }
 }
 
-JSContext *JS_DupContext(JSContext *ctx)
+static JSContext *JS_DupContext(JSContext *ctx)
 {
     ctx->header.ref_count++;
     return ctx;
@@ -6153,7 +6153,7 @@ void JS_RunGC(JSRuntime *rt)
 /* Return false if not an object or if the object has already been
    freed (zombie objects are visible in finalizers when freeing
    cycles). */
-BOOL JS_IsLiveObject(JSRuntime *rt, JSValueConst obj)
+static BOOL JS_IsLiveObject(JSRuntime *rt, JSValueConst obj)
 {
     JSObject *p;
     if (!JS_IsObject(obj))
@@ -15794,7 +15794,13 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_DupValue(ctx, arg_buf[3]);
         }  
         BREAK;
-        CASE(OP_put_arg0): printf("        case OP_put_arg0\n"); set_value(ctx, &arg_buf[0], *--sp); BREAK;
+        CASE(OP_put_arg0):{
+            #ifdef PRINTER
+                printf("\n        case OP_put_arg0\n");
+            #endif
+            set_value(ctx, &arg_buf[0], *--sp);
+        }   
+        BREAK;
         CASE(OP_put_arg1):
         {
             #ifdef PRINTER
@@ -40641,43 +40647,6 @@ exception:
     return JS_EXCEPTION;
 }
 
-/* only used in test262 */
-JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
-                                 int argc, JSValueConst *argv)
-{
-    uint32_t start, end, i, n;
-    StringBuffer b_s, *b = &b_s;
-
-    if (JS_ToUint32(ctx, &start, argv[0]) ||
-        JS_ToUint32(ctx, &end, argv[1]))
-        return JS_EXCEPTION;
-    end = min_uint32(end, 0x10ffff + 1);
-
-    if (start > end) {
-        start = end;
-    }
-    n = end - start;
-    if (end > 0x10000) {
-        n += end - max_uint32(start, 0x10000);
-    }
-    if (string_buffer_init2(ctx, b, n, end >= 0x100))
-        return JS_EXCEPTION;
-    for(i = start; i < end; i++) {
-        string_buffer_putc(b, i);
-    }
-    return string_buffer_end(b);
-}
-
-#if 0
-static JSValue js_string___isSpace(JSContext *ctx, JSValueConst this_val,
-                                   int argc, JSValueConst *argv)
-{
-    int c;
-    if (JS_ToInt32(ctx, &c, argv[0]))
-        return JS_EXCEPTION;
-    return JS_NewBool(ctx, lre_is_space(c));
-}
-#endif
 
 static JSValue js_string_charCodeAt(JSContext *ctx, JSValueConst this_val,
                                      int argc, JSValueConst *argv)

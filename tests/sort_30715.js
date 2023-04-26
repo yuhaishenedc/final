@@ -18,7 +18,7 @@ function layer1() {
   }
 
 
-  console.log(1);
+  console.log("success");
 
   function layer2() {
 		// build:0.63.4 */var __scriptTimeBegin4Bundle = Date && Date.now && Date.now();var __scriptName4Bundle = "index.js";

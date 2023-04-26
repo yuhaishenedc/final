@@ -769,9 +769,12 @@ static JSValue add_helpers1(JSContext *ctx)
     JS_SetPropertyStr(ctx, obj262, "evalScript",
                       JS_NewCFunction(ctx, js_evalScript,
                                       "evalScript", 1));
+#if 0
     JS_SetPropertyStr(ctx, obj262, "codePointRange",
                       JS_NewCFunction(ctx, js_string_codePointRange,
                                       "codePointRange", 2));
+#endif 
+
 #ifdef CONFIG_AGENT
     JS_SetPropertyStr(ctx, obj262, "agent", js_new_agent(ctx));
 #endif
