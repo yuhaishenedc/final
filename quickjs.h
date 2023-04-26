@@ -335,7 +335,7 @@ JSRuntime *JS_NewRuntime(void);
 /* info lifetime must exceed that of rt */
 void JS_SetRuntimeInfo(JSRuntime *rt, const char *info);                //call once in runtest262
 void JS_SetMemoryLimit(JSRuntime *rt, size_t limit);                    //call once in qjs.c    
-void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold);
+//void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold);             //not called?
 /* use 0 to disable maximum stack size check */
 void JS_SetMaxStackSize(JSRuntime *rt, size_t stack_size);
 /* should be called when changing thread to update the stack top value

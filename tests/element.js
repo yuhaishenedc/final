@@ -1,3 +1,6 @@
+
+/*
+
 function layer1(){
 
     var internal_style = ".btn-container {width:100%;height:100vh;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-orient:vertical;-webkit-box-direction:normal;-webkit-flex-direction:column;flex-direction:column;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;align-items:center}.btn-container .a-button {width:250px}.box.top, .box.bottom {height:200px}.box.left, .box.right {width:200px;height:100%}.box {background-color:#fff;display:-webkit-box;display:-webkit-flex;display:flex;-webkit-box-pack:center;-webkit-justify-content:center;justify-content:center;-webkit-box-align:center;-webkit-align-items:center;align-items:center}";
@@ -18,3 +21,13 @@ function layer1(){
         })
     }
 }
+
+*/
+
+var a=1;
+
+eval("var b = 1");
+
+var c=a+b;
+
+console.log(c);

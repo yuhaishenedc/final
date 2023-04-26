@@ -114,7 +114,7 @@
 #define PREPARSER
 #define PRINTER
 //#define PRINTGC
-//#define PRINTCALL
+#define PRINTCALL
 //#define PRINTFREE
 //#define PRINTATOM
 //#define PRINTRESOLVEVARIABLES
@@ -1629,12 +1629,6 @@ JSRuntime *JS_NewRuntime(void)
 void JS_SetMemoryLimit(JSRuntime *rt, size_t limit)
 {
     rt->malloc_state.malloc_limit = limit;
-}
-
-/* use -1 to disable automatic GC */
-void JS_SetGCThreshold(JSRuntime *rt, size_t gc_threshold)
-{
-    rt->malloc_gc_threshold = gc_threshold;
 }
 
 #define malloc(s) malloc_is_forbidden(s)
@@ -9966,9 +9960,9 @@ static int JS_DefineGlobalFunction(JSContext *ctx, JSAtom prop,
 static JSValue JS_GetGlobalVar(JSContext *ctx, JSAtom prop,
                                BOOL throw_ref_error)
 {
-    //#ifdef PRINTER
-        //printf("          5 enter JS_GetGlobalVar\n");
-    //#endif
+    #ifdef PRINTER
+        printf("          5 enter JS_GetGlobalVar\n");
+    #endif
     JSObject *p;
     JSShapeProperty *prs;
     JSProperty *pr;
@@ -9977,6 +9971,10 @@ static JSValue JS_GetGlobalVar(JSContext *ctx, JSAtom prop,
     p = JS_VALUE_GET_OBJ(ctx->global_var_obj);
 
     prs = find_own_property(&pr, p, prop);
+
+    #ifdef PRINTER
+        
+    #endif
     if (prs) {
         /* XXX: should handle JS_PROP_TMASK properties */
         if (unlikely(JS_IsUninitialized(pr->u.value)))
@@ -23518,6 +23516,9 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
         break;
     case TOK_IDENT:
         {
+            #ifdef PRINTER
+                printf("                      case TOK_IDENT\n");
+            #endif
             JSAtom name;
             if (s->token.u.ident.is_reserved) {
                 return js_parse_error_reserved_identifier(s);
