@@ -1,45 +1,25 @@
+codePointRange = function codePointRange(start, end) {
+    const codePoints = [];
+    let length = 0;
+    for (codePoint = start; codePoint < end; codePoint++) {
+        codePoints[length++] = codePoint;
+    }
+    return String.fromCodePoint.apply(null, codePoints);
+}
 
+function buildString({ loneCodePoints, ranges }) {
+    let result = String.fromCodePoint.apply(null, loneCodePoints);
+    for (const [start, end] of ranges) {
+        result += codePointRange(start, end + 1);
+    }
+    return result;
+}
 
-
-/******/ (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
-/******/
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
-/******/
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId]) {
-/******/ 			return installedModules[moduleId].exports;
-/******/ 		}
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			i: moduleId,
-/******/ 			l: false,
-/******/ 			exports: {}
-/******/ 		};
-/******/
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
-/******/
-/******/ 		// Flag the module as loaded
-/******/ 		module.l = true;
-/******/
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
-/******/  
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 1);
-/******/ })
-/************************************************************************/
-/******/ ({
-/***/ 1:
-/***/ (function(module, exports, __webpack_require__) {
-  
-console.log(1);
-//module.exports = __webpack_require__("DH4n");
-
-
-/***/ }),
-/******/ });
+const str = buildString({
+    loneCodePoints: [],
+    ranges: [
+        [0x000000, 0x00002F],
+        [0x00003A, 0x0111FF],
+        //[0x00003A, 0x10FFFF],
+    ],
+});

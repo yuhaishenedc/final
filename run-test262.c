@@ -44,7 +44,7 @@
 
 #define CMD_NAME "run-test262"
 
-//#define PRINTER
+#define PRINTER
 
 typedef struct namelist_t {
     char **array;
@@ -769,11 +769,9 @@ static JSValue add_helpers1(JSContext *ctx)
     JS_SetPropertyStr(ctx, obj262, "evalScript",
                       JS_NewCFunction(ctx, js_evalScript,
                                       "evalScript", 1));
-#if 0
     JS_SetPropertyStr(ctx, obj262, "codePointRange",
                       JS_NewCFunction(ctx, js_string_codePointRange,
                                       "codePointRange", 2));
-#endif 
 
 #ifdef CONFIG_AGENT
     JS_SetPropertyStr(ctx, obj262, "agent", js_new_agent(ctx));
@@ -1177,6 +1175,9 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
                     const char *error_type, FILE *outfile, int eval_flags,
                     int is_async)
 {
+    #ifdef PRINTER
+        printf("enter eval_buf filename is %s\n",filename);
+    #endif
     JSValue res_val, exception_val;
     int ret, error_line, pos, pos_line;
     BOOL is_error, has_error_line;
@@ -1508,9 +1509,6 @@ int run_test_buf(const char *filename, char *harness, namelist_t *ip,
                  int eval_flags, BOOL is_negative, BOOL is_async,
                  BOOL can_block)
 {
-    #ifdef PRINTER
-        printf("      3 enter run_test_buf (run-test262.c)\n");
-    #endif
     JSRuntime *rt;
     JSContext *ctx;
     int i, ret;
@@ -1566,9 +1564,6 @@ int run_test_buf(const char *filename, char *harness, namelist_t *ip,
 
 int run_test(const char *filename, int index)
 {
-    #ifdef PRINTER
-        printf("    2 enter run_test (run-test262.c)\n");
-    #endif
     char harnessbuf[1024];
     char *harness;
     char *buf;
@@ -1586,10 +1581,6 @@ int run_test(const char *filename, int index)
     buf = load_file(filename, &buf_len);
 
     harness = harness_dir;
-
-    #ifdef PRINTER
-        printf("    new_style is %d\n",new_style);
-    #endif
 
     if (new_style) {
         if (!harness) {
@@ -1808,7 +1799,6 @@ int run_test(const char *filename, int index)
 /* run a test when called by test262-harness+eshost */
 int run_test262_harness_test(const char *filename, BOOL is_module)
 {
-
     JSRuntime *rt;
     JSContext *ctx;
     char *buf;
@@ -1889,9 +1879,6 @@ static int slow_test_threshold;
 
 void run_test_dir_list(namelist_t *lp, int start_index, int stop_index)
 {
-    #ifdef PRINTER
-        printf("  1 enter run_test_dir_list (run-test262.c)\n");
-    #endif
     int i;
 
     namelist_sort(lp);
@@ -1956,9 +1943,6 @@ char *get_opt_arg(const char *option, char *arg)
 
 int main(int argc, char **argv)
 {
-    #ifdef PRINTER
-        printf("0 inside the main function (run-test262.c)\n");
-    #endif
     int optind, start_index, stop_index;
     BOOL is_dir_list;
     BOOL only_check_errors = FALSE;
@@ -2045,10 +2029,6 @@ int main(int argc, char **argv)
     }
 
     update_exclude_dirs();
-
-    #ifdef PRINTER
-        printf("is dir_list is %d\n",is_dir_list);
-    #endif
 
     if (is_dir_list) {
         if (optind < argc && !isdigit(argv[optind][0])) {

@@ -112,7 +112,7 @@
 #endif
 
 #define PREPARSER
-//#define PRINTER
+#define PRINTER
 //#define PRINTGC
 //#define PRINTCALL
 //#define PRINTFREE
@@ -121,6 +121,7 @@
 //#define PRINTRESOLVELABELS
 //#define PRINTSCOPE
 //#define TIMER
+//#define PRINTMODULE
 
 #ifdef TIMER
     struct timespec start_timer,end_timer;
@@ -571,6 +572,8 @@ typedef struct JSFunctionBytecode {
         void *full_fd;
         void *sf;
         void *parent_p;
+        int line_num;
+        const char *strfilename;
     #endif
     struct {
         /* debug info, move to separate structure to save memory? */
@@ -908,7 +911,17 @@ struct JSObject {
     } u;
     /* byte sizes: 40/48/72 */
     //preparse flag (if put it in the struct above, the value will be modified)
-    uint8_t need_reparse_closure;
+    int pos1;
+    int pos2;
+    int pos3;
+    int pos4;
+    int pos5;
+    int pos6;
+    int pos7;
+    int pos8;
+    int pos9;
+    int pos10;
+    int need_reparse_closure;
     JSValue *exit_arg_buf;
     JSValue *exit_var_buf;
     //这个值指调用这个jsclosure的func obj，从js closure函数中获取
@@ -1235,7 +1248,7 @@ size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr)
     return rt->mf.js_malloc_usable_size(ptr);
 }
 
-void *js_mallocz_rt(JSRuntime *rt, size_t size)
+static void *js_mallocz_rt(JSRuntime *rt, size_t size)
 {
     void *ptr;
     ptr = js_malloc_rt(rt, size);
@@ -1286,7 +1299,7 @@ void *js_realloc(JSContext *ctx, void *ptr, size_t size)
 }
 
 /* store extra allocated size in *pslack if successful */
-void *js_realloc2(JSContext *ctx, void *ptr, size_t size, size_t *pslack)
+static void *js_realloc2(JSContext *ctx, void *ptr, size_t size, size_t *pslack)
 {
     void *ret;
     ret = ctx->rt->mf.js_realloc(&ctx->rt->malloc_state, ptr, size);
@@ -1295,19 +1308,19 @@ void *js_realloc2(JSContext *ctx, void *ptr, size_t size, size_t *pslack)
         return NULL;
     }
     if (pslack) {
-        size_t new_size = js_malloc_usable_size_rt(ctx->rt, ret);
+        size_t new_size = ctx->rt->mf.js_malloc_usable_size(ret);
         *pslack = (new_size > size) ? new_size - size : 0;
     }
     return ret;
 }
 
-size_t js_malloc_usable_size(JSContext *ctx, const void *ptr)
+static size_t js_malloc_usable_size(JSContext *ctx, const void *ptr)
 {
-    return js_malloc_usable_size_rt(ctx->rt, ptr);
+    return ctx->rt->mf.js_malloc_usable_size(ptr);
 }
 
 /* Throw out of memory exception in case of error */
-char *js_strndup(JSContext *ctx, const char *s, size_t n)
+static char *js_strndup(JSContext *ctx, const char *s, size_t n)
 {
     char *ptr;
     ptr = js_malloc(ctx, n + 1);
@@ -1682,6 +1695,10 @@ BOOL JS_IsJobPending(JSRuntime *rt)
    executed successfully. the context of the job is stored in '*pctx' */
 int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)
 {
+    #ifdef PRINTER
+        printf("          enter JS_ExecutePendingJob\n");
+    #endif
+
     JSContext *ctx;
     JSJobEntry *e;
     JSValue res;
@@ -1706,6 +1723,9 @@ int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)
     JS_FreeValue(ctx, res);
     js_free(ctx, e);
     *pctx = ctx;
+    #ifdef PRINTER
+        printf("          exit JS_ExecutePendingJob\n");
+    #endif
     return ret;
 }
 
@@ -6535,7 +6555,7 @@ void JS_DumpMemoryUsage(FILE *fp, const JSMemoryUsage *s, JSRuntime *rt)
             unsigned int size = object_types[i].size;
             void *p = js_malloc_rt(rt, size);
             if (p) {
-                unsigned int size1 = js_malloc_usable_size_rt(rt, p);
+                unsigned int size1 = rt->mf.js_malloc_usable_size(p);
                 if (size1 >= size) {
                     usage_size_ok = 1;
                     fprintf(fp, "  %3u + %-2u  %s\n",
@@ -7454,7 +7474,7 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
     }
 
     #ifdef PRINTER
-        JS_DumpObject(ctx->rt,p);
+        //JS_DumpObject(ctx->rt,p);
     #endif
 
     for(;;) {
@@ -13824,7 +13844,11 @@ static JSValue js_closure2(JSContext *ctx, JSValue func_obj,
     p->need_reparse_closure=0;
 
     if (b->closure_var_count) {
-        var_refs = js_mallocz(ctx, sizeof(var_refs[0]) * b->closure_var_count);
+        var_refs = js_mallocz_rt(ctx->rt, sizeof(var_refs[0]) * b->closure_var_count);
+        if (unlikely(!var_refs)) {
+            JS_ThrowOutOfMemory(ctx);
+            var_refs = NULL;
+        }
         if (!var_refs)
             goto fail;
         p->u.func.var_refs = var_refs;
@@ -13896,7 +13920,7 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
 {
     //*todo: need to use test262 to test here
 	#ifdef PRINTER
-		printf("\n    2a enter js_closure && ");
+		printf("\n    2a enter js_closure\n");
 	#endif
 
     JSFunctionBytecode *b;
@@ -13906,7 +13930,10 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
     b = JS_VALUE_GET_PTR(bfunc);
 
     #ifdef PRINTER
-        printf("function line number is %d && function preparse_flag is %d\n",b->debug.line_num,b->preparse_flag);
+        if(b->has_debug){
+            printf("function line number is %d\n",b->debug.line_num);
+        }
+        printf("function preparse_flag is %d\n",b->preparse_flag);
     #endif
 
     //由于在cv->is_local时传入的sf是调用这个js_closure函数的sf，所以这里要将这个sf的arg_buf存储下来
@@ -13933,7 +13960,7 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
         func_obj=JS_NewObjectClass(ctx,func_kind_to_class_id[b->func_kind]);
 
         JSObject *reparse_p=JS_VALUE_GET_OBJ(func_obj);
-        reparse_p->need_reparse_closure=1;
+        reparse_p->need_reparse_closure=-9877;
 
         if (JS_IsException(func_obj)) {
             JS_FreeValue(ctx, bfunc);
@@ -13996,7 +14023,7 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
     }
 
     #ifdef PRINTER
-        printf("    b->closure_var_count is %d && function line number is %d\n",b->closure_var_count,b->debug.line_num);
+        printf("    b->closure_var_count is %d\n",b->closure_var_count);
     #endif
 
 /*
@@ -14056,7 +14083,9 @@ static const uint16_t func_kind_to_class_id[] = {
 
     JSObject *tmp_p=JS_VALUE_GET_OBJ(func_obj);
 
-    if(b->debug.line_num!=1){
+    
+
+    if(b->line_num!=1){
         //这里当b->debug.line_num为1的初始全局u函数执行时无法获取sf->cuf_func，怎么都是
         //segmentation fault，因此暂时这样处理
         tmp_p->create_closure_parent=JS_VALUE_GET_OBJ(sf->cur_func);
@@ -14422,6 +14451,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 		printf("\n      3 enter JS_CallInternal &&");
 	#endif
 
+    #ifdef PRINTMODULE
+        printf("      3 enter JS_CallInternal\n");
+    #endif
+
     JSRuntime *rt = caller_ctx->rt;
     JSContext *ctx;
     JSObject *p;
@@ -14501,7 +14534,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         call_func = rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-            printf("ck1\n");
+            //printf("ck1\n");
             return JS_ThrowTypeError(caller_ctx, "not a function");
         }
         return call_func(caller_ctx, func_obj, this_obj, argc,
@@ -14513,7 +14546,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     #ifdef PRINTER
         printf("      function line number is %d && b->preparse_flag is %d && p->need_reparse_closure is %d\n",b->debug.line_num,b->preparse_flag,p->need_reparse_closure);
     #endif
-    
+
+    #ifdef PRINTMODULE    
+        printf("      b->preparse_flag is %d && p->need_reparse_closure is %d\n",b->preparse_flag,p->need_reparse_closure);
+    #endif
+
     if(b->preparse_flag==1){   //now fully parse the preparsed function
 
         #ifdef PRINTER
@@ -14540,7 +14577,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     //move to here
     init_list_head(&sf->var_ref_list);
 
-    if(p->need_reparse_closure==1){
+    if(p->need_reparse_closure==-9877){
 
         p->need_reparse_closure=0;
         JSVarRef **reparse_var_refs;
@@ -14751,7 +14788,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     }
 
     #ifdef PRINTER
-        printf("before execution \n");
+        //printf("before execution \n");
         //JS_DumpObject(caller_ctx->rt,p);
     #endif
 
@@ -14840,13 +14877,13 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_push_5):
         CASE(OP_push_6):
         CASE(OP_push_7):
-            #ifdef PRINTER
-                printf("        case OP_push_%d\n",opcode-OP_push_0);
+            #ifdef PRINTCALL
+                printf("        case OP_push_%d && sp is %p\n",opcode-OP_push_0,sp);
             #endif
             *sp++ = JS_NewInt32(ctx, opcode - OP_push_0);
             BREAK;
         CASE(OP_push_i8):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_pushi8\n");
             #endif
             *sp++ = JS_NewInt32(ctx, get_i8(pc));
@@ -14860,7 +14897,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_DupValue(ctx, b->cpool[*pc++]);
             BREAK;
         CASE(OP_fclosure8):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_fclosure8 && call function line number is %d && b->closure_var_count is %d\n",b->debug.line_num,b->closure_var_count);
             #endif
 
@@ -14874,7 +14911,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_get_length):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_get_length\n");
                 #endif
                 JSValue val;
@@ -14888,7 +14925,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
 #endif
         CASE(OP_push_atom_value):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_push_atom_value\n");
             #endif
 
@@ -14928,13 +14965,13 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_push_true):
 
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_push_true\n");
             #endif
             *sp++ = JS_TRUE;
             BREAK;
         CASE(OP_object):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_object && function line number is %d\n",b->debug.line_num);
             #endif
             *sp++ = JS_NewObject(ctx);
@@ -14943,11 +14980,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_special_object):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_special_object\n");
                 #endif
                 int arg = *pc++;
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        arg is %d\n",arg);
                 #endif
                 switch(arg) {
@@ -15004,7 +15041,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
 
         CASE(OP_drop):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_drop\n");
             #endif
             JS_FreeValue(ctx, sp[-1]);
@@ -15022,8 +15059,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             sp--;
             BREAK;
         CASE(OP_dup):
-            #ifdef PRINTER
-                printf("\n        case OP_dup && %d\n",b->debug.line_num);
+            #ifdef PRINTCALL
+                printf("\n        case OP_dup && %d && sp is %p\n",b->debug.line_num,sp);
             #endif
             sp[0] = JS_DupValue(ctx, sp[-1]);
             sp++;
@@ -15045,7 +15082,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             sp++;
             BREAK;
         CASE(OP_insert2): /* obj a -> a obj a (dup_x1) */
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_insert2\n");
             #endif
             sp[0] = sp[-1];
@@ -15168,7 +15205,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_call1):
         CASE(OP_call2):
         CASE(OP_call3):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_call%d && call function line number is %d\n",opcode-OP_call0,b->debug.line_num);
             #endif
             call_argc = opcode - OP_call0;
@@ -15177,7 +15214,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_call):
         CASE(OP_tail_call):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("\n        case OP_tail_call(or OP_call) && call function line number is %d\n",b->debug.line_num);
                 #endif
                 call_argc = get_u16(pc);
@@ -15192,7 +15229,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED,
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
 
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("      after execution return to function line number %d\n",b->debug.line_num);
                 #endif
                 
@@ -15202,10 +15239,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 if (opcode == OP_tail_call)
                     goto done;
                 for(i = -1; i < call_argc; i++){
-                    #ifdef PRINTER
+                    #ifdef PRINTCALL
                         printf("      in JS_CallInternal OP_callx has_call_argc && i is %d\n",i);
                     #endif
-                    #ifdef PRINTER
+                    #ifdef PRINTCALL
                     if(JS_VALUE_GET_TAG(call_argv[i])==JS_TAG_OBJECT){
                         JSObject * call_tmp=JS_VALUE_GET_OBJ(call_argv[i]);
                         //JS_DumpObject(rt,call_tmp);
@@ -15225,7 +15262,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_call_constructor):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("\n        case OP_call_constructor\n");
                 #endif
                 call_argc = get_u16(pc);
@@ -15250,13 +15287,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 pc += 2;
                 call_argv = sp - call_argc;
                 sf->cur_pc = pc;
-                #ifdef PRINTER
-                    printf("        case OP_call_method(OP_tail_call_method)\n");
-                    printf("        call_argc is %d && call function line number is %d\n",call_argc,b->debug.line_num);
+                #ifdef PRINTCALL
+                    printf("        case OP_call_method || OP_tail_call_method && call_argc is %d && sp is %p\n",call_argc,sp);
                 #endif
                 ret_val = JS_CallInternal(ctx, call_argv[-1], call_argv[-2],
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("      return to function line number %d\n",b->debug.line_num);
                 #endif
                 if (unlikely(JS_IsException(ret_val)))
@@ -15264,11 +15300,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 if (opcode == OP_tail_call_method)
                     goto done;
                 for(i = -2; i < call_argc; i++){
-                    #ifdef PRINTER
+                    #ifdef PRINTCALL
                         printf("      in JS_CallInternal case OP_call_method\n");
                         printf("      i is %d\n",i);
                     #endif
-                    #ifdef PRINTER
+                    #ifdef PRINTCALL
                         printf("      tag is %d\n",JS_VALUE_GET_TAG(call_argv[i]));
                         if(JS_VALUE_GET_TAG(call_argv[i])==JS_TAG_OBJECT){
                             //JS_DumpObject(rt,JS_VALUE_GET_PTR(call_argv[i]));
@@ -15284,9 +15320,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_array_from):
             {
-                #ifdef PRINTER
-                    printf("        case OP_array_from\n");
-                #endif
+                
                 int i, ret;
 
                 call_argc = get_u16(pc);
@@ -15295,6 +15329,9 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 if (unlikely(JS_IsException(ret_val)))
                     goto exception;
                 call_argv = sp - call_argc;
+                #ifdef PRINTCALL
+                    printf("        case OP_array_from && call_argc is %d && sp is %p\n",call_argc,sp);
+                #endif
                 for(i = 0; i < call_argc; i++) {
                     ret = JS_DefinePropertyValue(ctx, ret_val, __JS_AtomFromUInt32(i), call_argv[i],
                                                  JS_PROP_C_W_E | JS_PROP_THROW);
@@ -15329,7 +15366,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             ret_val = *--sp;
             goto done;
         CASE(OP_return_undef):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_return_undef\n"); 
             #endif
             ret_val = JS_UNDEFINED;
@@ -15510,8 +15547,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_var_undef):
         CASE(OP_get_var):
             {
-                #ifdef PRINTER
-                    printf("\n        case OP_get_var\n");
+                #ifdef PRINTCALL
+                    printf("\n        case OP_get_var && sp is %p\n",sp);
                 #endif
                 JSValue val;
                 JSAtom atom;
@@ -15547,7 +15584,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
                 ret = JS_SetGlobalVar(ctx, atom, sp[-1], opcode - OP_put_var);
 
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                 if(JS_VALUE_GET_TAG(sp[-1])==JS_TAG_OBJECT){
                     //JS_DumpObject(ctx->rt,JS_VALUE_GET_OBJ(sp[-1]));
                 }
@@ -15698,7 +15735,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_loc0):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_get_loc0\n");
             #endif 
             *sp++ = JS_DupValue(ctx, var_buf[0]); 
@@ -15706,7 +15743,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_get_loc1):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_get_loc1\n");
             #endif 
             *sp++ = JS_DupValue(ctx, var_buf[1]);
@@ -15716,9 +15753,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_loc3): *sp++ = JS_DupValue(ctx, var_buf[3]); BREAK;
         CASE(OP_put_loc0): 
         {
-            #ifdef PRINTER
-                printf("        case OP_put_loc0\n");
-                printf("        tag is %d\n",JS_VALUE_GET_TAG(*(sp-1)));
+            #ifdef PRINTCALL
+                printf("        case OP_put_loc0 && tag is %d && sp is %p\n",JS_VALUE_GET_TAG(*(sp-1)),sp);
             #endif
             set_value(ctx, &var_buf[0], *--sp); 
             
@@ -15727,19 +15763,15 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_put_loc1):
         {
-            #ifdef PRINTER
-                printf("        case OP_put_loc1\n");
-                printf("        tag is %d\n",JS_VALUE_GET_TAG(*(sp-1)));
-                if(JS_VALUE_GET_TAG(*(sp-1))==JS_TAG_OBJECT){
-                    //JS_DumpObject(rt,JS_VALUE_GET_PTR(*(sp-1)));
-                }
+            #ifdef PRINTCALL
+                printf("        case OP_put_loc1 && tag is %d && sp is %p\n",JS_VALUE_GET_TAG(*(sp-1)),sp);
             #endif
             set_value(ctx, &var_buf[1], *--sp); 
         }
         BREAK; 
         CASE(OP_put_loc2):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_put_loc2\n");
             #endif
             set_value(ctx, &var_buf[2], *--sp);
@@ -15747,7 +15779,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_put_loc3):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_put_loc3\n");
             #endif
             set_value(ctx, &var_buf[3], *--sp); 
@@ -15755,7 +15787,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_set_loc0):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_set_loc0\n");
             #endif
             set_value(ctx, &var_buf[0], JS_DupValue(ctx, sp[-1]));
@@ -15766,36 +15798,36 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_set_loc3): set_value(ctx, &var_buf[3], JS_DupValue(ctx, sp[-1])); BREAK;
         CASE(OP_get_arg0):
         {
-            #ifdef PRINTER
-                printf("\n        case OP_get_arg0\n"); 
+            #ifdef PRINTCALL
+                printf("\n        case OP_get_arg0 && sp is %p\n",sp); 
             #endif
             *sp++ = JS_DupValue(ctx, arg_buf[0]); 
         }
         BREAK; 
         CASE(OP_get_arg1):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_get_arg1\n"); 
             #endif
             *sp++ = JS_DupValue(ctx, arg_buf[1]);
         }
         BREAK;
         CASE(OP_get_arg2):{
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_get_arg2\n"); 
             #endif
             *sp++ = JS_DupValue(ctx, arg_buf[2]);
         }  
         BREAK;
         CASE(OP_get_arg3):{
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_get_arg3\n"); 
             #endif
             *sp++ = JS_DupValue(ctx, arg_buf[3]);
         }  
         BREAK;
         CASE(OP_put_arg0):{
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_put_arg0\n");
             #endif
             set_value(ctx, &arg_buf[0], *--sp);
@@ -15803,7 +15835,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_put_arg1):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_put_arg1\n");
             #endif
             set_value(ctx, &arg_buf[1], *--sp);
@@ -15811,7 +15843,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_put_arg2): set_value(ctx, &arg_buf[2], *--sp); BREAK;
         CASE(OP_put_arg3):{
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_put_arg3\n");
             #endif
             set_value(ctx, &arg_buf[3], *--sp);
@@ -15823,7 +15855,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_set_arg3): set_value(ctx, &arg_buf[3], JS_DupValue(ctx, sp[-1])); BREAK;
         CASE(OP_get_var_ref0):
         {
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_get_var_ref0\n");
                 printf("          JS_VALUE_GET_TAG is %d\n",JS_VALUE_GET_TAG(*var_refs[0]->pvalue));
                 if(JS_VALUE_GET_TAG(*var_refs[0]->pvalue)==JS_TAG_INT){
@@ -15837,7 +15869,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         }
         BREAK;
         CASE(OP_get_var_ref1):{
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("\n        case OP_get_var_ref1\n");
                 printf("          JS_VALUE_GET_TAG is %d\n",JS_VALUE_GET_TAG(*var_refs[1]->pvalue));
                 if(JS_VALUE_GET_TAG(*var_refs[1]->pvalue)==JS_TAG_INT){
@@ -15892,7 +15924,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_get_var_ref_check):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_get_var_ref_check\n"); 
                 #endif
                 int idx;
@@ -15936,19 +15968,19 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_set_loc_uninitialized):
             {
-                #ifdef PRINTER
-                    printf("        case OP_set_loc_uninitialized\n");
-                #endif
                 int idx;
                 idx = get_u16(pc);
                 pc += 2;
+                #ifdef PRINTCALL
+                    printf("        case OP_set_loc_uninitialized && idx is %d && sp is %p\n",idx,sp);
+                #endif
                 set_value(ctx, &var_buf[idx], JS_UNINITIALIZED);
             }
             BREAK;
         CASE(OP_get_loc_check):
             {
-                #ifdef PRINTER
-                    printf("        case OP_get_loc_check\n");
+                #ifdef PRINTCALL
+                    printf("        case OP_get_loc_check && sp is %p\n",sp);
                 #endif
                 int idx;
                 idx = get_u16(pc);
@@ -15963,7 +15995,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_put_loc_check):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_put_loc_check\n");
                 #endif
                 int idx;
@@ -16058,7 +16090,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 goto exception;
             BREAK;
         CASE(OP_goto8):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_goto8\n");
             #endif
             pc += (int8_t)pc[0];
@@ -16316,7 +16348,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_lnot):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_lnot\n");
                 #endif
                 int res;
@@ -16334,8 +16366,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field):
             {
-                #ifdef PRINTER
-                    printf("\n        case OP_get_field\n");
+                #ifdef PRINTCALL
+                    printf("\n        case OP_get_field && sp is %p\n",sp);
                 #endif
                 JSValue val;
                 JSAtom atom;
@@ -16352,8 +16384,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field2):
             {
-                #ifdef PRINTER
-                    printf("\n        case OP_get_field2\n");
+                #ifdef PRINTCALL
+                    printf("\n        case OP_get_field2 && sp is %p\n",sp);
                 #endif
                 JSValue val;
                 JSAtom atom;
@@ -16372,7 +16404,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_put_field):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_put_field\n");
                 #endif
 
@@ -16443,7 +16475,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_define_field):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_define_field\n");
                 #endif
                 int ret;
@@ -16461,7 +16493,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_set_name):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("      case OP_set_name\n");
                 #endif
                 int ret;
@@ -16575,7 +16607,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_array_el):
             {
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_get_array_el\n");
                 #endif
                 JSValue val;
@@ -16740,7 +16772,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             {
                 //通过查看这里了解一下怎么获取JSValue，然后现在是怎么获取宏的信息
 
-                #ifdef PRINTER
+                #ifdef PRINTCALL
                     printf("        case OP_add\n");
                 #endif
 
@@ -16986,7 +17018,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_post_inc):
         CASE(OP_post_dec):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_post_inc\n");
             #endif
             if (js_post_inc_slow(ctx, sp, opcode))
@@ -17406,7 +17438,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 goto free_and_set_false;
             }
         CASE(OP_is_null):
-            #ifdef PRINTER
+            #ifdef PRINTCALL
                 printf("        case OP_is_null\n"); 
             #endif
             if (JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_NULL) {
@@ -17655,7 +17687,7 @@ static JSValue JS_CallConstructorInternal(JSContext *ctx,
         call_func = ctx->rt->class_array[p->class_id].call;
         if (!call_func) {
         not_a_function:
-        printf("ck2\n");
+        //printf("ck2\n");
             return JS_ThrowTypeError(ctx, "not a function");
         }
         return call_func(ctx, func_obj, new_target, argc,
@@ -17966,7 +17998,11 @@ static JSValue js_generator_function_call(JSContext *ctx, JSValueConst func_obj,
     JSValue obj, func_ret;
     JSGeneratorData *s;
 
-    s = js_mallocz(ctx, sizeof(*s));
+    s = js_mallocz_rt(ctx->rt, sizeof(*s));
+    if (unlikely(!s)) {
+        JS_ThrowOutOfMemory(ctx);
+        s = NULL;
+    }
     if (!s)
         return JS_EXCEPTION;
     s->state = JS_GENERATOR_STATE_SUSPENDED_START;
@@ -18150,7 +18186,11 @@ static JSValue js_async_function_call(JSContext *ctx, JSValueConst func_obj,
     JSValue promise;
     JSAsyncFunctionData *s;
 
-    s = js_mallocz(ctx, sizeof(*s));
+    s = js_mallocz_rt(ctx->rt, sizeof(*s));
+    if (unlikely(!s)) {
+        JS_ThrowOutOfMemory(ctx);
+        s = NULL;
+    }
     if (!s)
         return JS_EXCEPTION;
     s->header.ref_count = 1;
@@ -18553,7 +18593,11 @@ static JSValue js_async_generator_next(JSContext *ctx, JSValueConst this_val,
         JS_FreeValue(ctx, resolving_funcs[1]);
         return promise;
     }
-    req = js_mallocz(ctx, sizeof(*req));
+    req = js_mallocz_rt(ctx->rt, sizeof(*req));
+    if (unlikely(!req)) {
+        JS_ThrowOutOfMemory(ctx);
+        req = NULL;
+    }
     if (!req)
         goto fail;
     req->completion_type = magic;
@@ -18581,7 +18625,11 @@ static JSValue js_async_generator_function_call(JSContext *ctx, JSValueConst fun
     JSValue obj, func_ret;
     JSAsyncGeneratorData *s;
 
-    s = js_mallocz(ctx, sizeof(*s));
+    s = js_mallocz_rt(ctx->rt, sizeof(*s));
+    if (unlikely(!s)) {
+        JS_ThrowOutOfMemory(ctx);
+        s = NULL;
+    }
     if (!s)
         return JS_EXCEPTION;
     s->state = JS_ASYNC_GENERATOR_STATE_SUSPENDED_START;
@@ -18927,7 +18975,7 @@ typedef struct JSToken {
 typedef struct JSParseState {
 
     #ifdef PREPARSER
-        int preparse_flag;
+        //int preparse_flag;
     #endif
 
     JSContext *ctx;
@@ -19094,9 +19142,6 @@ int __attribute__((format(printf, 2, 3))) js_parse_error(JSParseState *s, const 
 
 static int js_parse_expect(JSParseState *s, int tok)
 {
-    #ifdef PRINTER
-        printf("  1 enter js_parse_expect\n");
-    #endif
     if (s->token.val != tok) {
         /* XXX: dump token correctly in all cases */
         return js_parse_error(s, "expecting '%c'", tok);
@@ -20886,9 +20931,9 @@ static int add_arguments_arg(JSContext *ctx, JSFunctionDef *fd)
 static int add_arg(JSContext *ctx, JSFunctionDef *fd, JSAtom name)
 {
     JSVarDef *vd;
-
     /* the local variable indexes are currently stored on 16 bits */
     if (fd->arg_count >= JS_MAX_LOCAL_VARS) {
+        printf("error1\n");
         JS_ThrowInternalError(ctx, "too many arguments");
         return -1;
     }
@@ -21716,32 +21761,6 @@ static __exception int js_parse_object_literal(JSParseState *s)
         } else {
             if (js_parse_expect(s, ':'))
                 goto fail;
-
-            #ifdef PREPARSER
-                //execute a loock ahead here, look for "(function" structure  
-                JSParsePos pos;
-                js_parse_get_pos(s,&pos);
-                int if_IIFE=1;
-                
-                if(s->token.val!='('){
-                    if_IIFE=0;
-                    if(next_token(s)) return -1;
-                }
-                if(s->token.val!=TOK_FUNCTION){
-                    if_IIFE=0;
-                    if(next_token(s)) return -1;
-                }
-
-                //js_parse_expect has extra action may cause problem,
-                //so change to the above version
-                //if(js_parse_expect(s,'(')) if_IIFE=0;
-                //if(js_parse_expect(s,TOK_FUNCTION)) if_IIFE=0;
-
-                if(if_IIFE)
-                    s->preparse_flag=1;     //1 represents the function need to be preparsed
-                if(js_parse_seek_token(s,&pos))
-                    goto fail;
-            #endif
 
             if (js_parse_assign_expr(s))
                 goto fail;
@@ -26223,7 +26242,11 @@ fail:
 static JSModuleDef *js_new_module_def(JSContext *ctx, JSAtom name)
 {
     JSModuleDef *m;
-    m = js_mallocz(ctx, sizeof(*m));
+    m = js_mallocz_rt(ctx->rt, sizeof(*m));
+    if (unlikely(!m)) {
+        JS_ThrowOutOfMemory(ctx);
+        m = NULL;
+    }
     if (!m) {
         JS_FreeAtom(ctx, name);
         return NULL;
@@ -27073,7 +27096,11 @@ static int js_create_module_bytecode_function(JSContext *ctx, JSModuleDef *m)
     p->u.func.home_object = NULL;
     p->u.func.var_refs = NULL;
     if (b->closure_var_count) {
-        var_refs = js_mallocz(ctx, sizeof(var_refs[0]) * b->closure_var_count);
+        var_refs = js_mallocz_rt(ctx->rt, sizeof(var_refs[0]) * b->closure_var_count);
+        if (unlikely(!var_refs)) {
+        JS_ThrowOutOfMemory(ctx);
+        var_refs = NULL;
+    }
         if (!var_refs)
             goto fail;
         p->u.func.var_refs = var_refs;
@@ -27147,6 +27174,9 @@ static int js_create_module_function(JSContext *ctx, JSModuleDef *m)
    variables. */
 static int js_link_module(JSContext *ctx, JSModuleDef *m)
 {
+
+    printf("                  enter js_link_module\n");
+    
     int i;
     JSImportEntry *mi;
     JSModuleDef *m1;
@@ -27166,6 +27196,8 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
     }
 #endif
 
+    printf("                  m->req_module_entries_count is %d\n",m->req_module_entries_count);
+
     for(i = 0; i < m->req_module_entries_count; i++) {
         JSReqModuleEntry *rme = &m->req_module_entries[i];
         if (js_link_module(ctx, rme->module) < 0)
@@ -27178,6 +27210,7 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
         printf("instantiating module '%s':\n", JS_AtomGetStr(ctx, buf1, sizeof(buf1), m->module_name));
     }
 #endif
+
     /* check the indirect exports */
     for(i = 0; i < m->export_entries_count; i++) {
         JSExportEntry *me = &m->export_entries[i];
@@ -27275,7 +27308,6 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
                 }
             }
         }
-
         /* keep the exported variables in the module export entries (they
            are used when the eval function is deleted and cannot be
            initialized before in case imports are exported) */
@@ -27288,8 +27320,11 @@ static int js_link_module(JSContext *ctx, JSModuleDef *m)
             }
         }
 
+            printf("    before JS_Call\n");
+
         /* initialize the global variables */
         ret_val = JS_Call(ctx, m->func_obj, JS_TRUE, 0, NULL);
+
         if (JS_IsException(ret_val))
             goto fail;
         JS_FreeValue(ctx, ret_val);
@@ -27376,10 +27411,13 @@ static JSValue js_import_meta(JSContext *ctx)
 JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
                           const char *filename)
 {
+    printf("              enter JS_runmodule && basename is %s && filename is %s\n",basename,filename);
+
     JSModuleDef *m;
     JSValue ret, func_obj;
     
     m = js_host_resolve_imported_module(ctx, basename, filename);
+
     if (!m)
         return NULL;
     
@@ -27394,12 +27432,16 @@ JSModuleDef *JS_RunModule(JSContext *ctx, const char *basename,
     if (JS_IsException(ret))
         return NULL;
     JS_FreeValue(ctx, ret);
+
+    printf("              exit JS_runmodule && filename is %s\n",filename);
+
     return m;
 }
 
 static JSValue js_dynamic_import_job(JSContext *ctx,
                                      int argc, JSValueConst *argv)
 {
+    printf("            enter js_dynamic_import_job\n");
     JSValueConst *resolving_funcs = argv;
     JSValueConst basename_val = argv[2];
     JSValueConst specifier = argv[3];
@@ -27418,12 +27460,11 @@ static JSValue js_dynamic_import_job(JSContext *ctx,
     filename = JS_ToCString(ctx, specifier);
     if (!filename)
         goto exception;
-                     
+    
     m = JS_RunModule(ctx, basename, filename);
     JS_FreeCString(ctx, filename);
     if (!m)
         goto exception;
-
     /* return the module namespace */
     ns = js_get_module_ns(ctx, m);
     if (JS_IsException(ns))
@@ -27443,6 +27484,7 @@ static JSValue js_dynamic_import_job(JSContext *ctx,
     JS_FreeValue(ctx, ret); /* XXX: what to do if exception ? */
     JS_FreeValue(ctx, err);
     JS_FreeCString(ctx, basename);
+    printf("            exit js_dynamic_import_job\n");
     return JS_UNDEFINED;
 }
 
@@ -27882,7 +27924,7 @@ static __exception int js_parse_source_element(JSParseState *s)
 
 	#ifdef PRINTER
     	printf("\n");
-		printf("    2 enter js_parse_source_element && line number is %d\n",s->line_num);
+		printf("    2 enter js_parse_source_element && line number is %d && filename is %s\n",s->line_num,s->filename);
 	#endif
 
     #ifdef TIMER
@@ -27936,7 +27978,11 @@ static JSFunctionDef *js_new_function_def(JSContext *ctx,
     #endif
     JSFunctionDef *fd;
 
-    fd = js_mallocz(ctx, sizeof(*fd));
+    fd = js_mallocz_rt(ctx->rt, sizeof(*fd));
+    if (unlikely(!fd)) {
+        JS_ThrowOutOfMemory(ctx);
+        fd = NULL;
+    }
     if (!fd)
         return NULL;
 
@@ -30748,14 +30794,22 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
 
 #if SHORT_OPCODES
     if (s->jump_size) {
-        s->jump_slots = js_mallocz(s->ctx, sizeof(*s->jump_slots) * s->jump_size);
+        s->jump_slots = js_mallocz_rt(ctx->rt, sizeof(*s->jump_slots) * s->jump_size);
+        if (unlikely(!s->jump_slots)) {
+            JS_ThrowOutOfMemory(ctx);
+            s->jump_slots = NULL;
+        }
         if (s->jump_slots == NULL)
             return -1;
     }
 #endif
     /* XXX: Should skip this phase if not generating SHORT_OPCODES */
     if (s->line_number_size && !(s->js_mode & JS_MODE_STRIP)) {
-        s->line_number_slots = js_mallocz(s->ctx, sizeof(*s->line_number_slots) * s->line_number_size);
+        s->line_number_slots = js_mallocz_rt(ctx->rt, sizeof(*s->line_number_slots) * s->line_number_size);
+        if (unlikely(!s->line_number_slots)) {
+            JS_ThrowOutOfMemory(ctx);
+            s->line_number_slots = NULL;
+        }
         if (s->line_number_slots == NULL)
             return -1;
         s->line_number_last = s->line_num;
@@ -31893,7 +31947,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd){
     JSParseState *s=&s_s;
 
     //dont preparse the function body
-    s->preparse_flag=0;
+    //s->preparse_flag=0;
     
     //*todo: checkout the usage of jscontext
     s->ctx=ctx;  
@@ -32440,7 +32494,11 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         byte_code_offset = function_size;
         function_size += fd->byte_code.size;
 
-        b = js_mallocz(ctx, function_size);
+        b = js_mallocz_rt(ctx->rt, function_size);
+        if (unlikely(!b)) {
+            JS_ThrowOutOfMemory(ctx);
+            b = NULL;
+        }
 
         if (!b)
             goto fail;
@@ -32510,6 +32568,9 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             b->debug.source = fd->source;
             b->debug.source_len = fd->source_len;
         }
+
+        b->line_num=fd->line_num;
+        b->strfilename=fd->strfilename;
             
         //here fd->scopes cannot be freed
         //if (fd->scopes != fd->def_scope_array)
@@ -32866,7 +32927,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
 {     
 	#ifdef PRINTER
 		printf("        4 enter js_parse_function_decl2 && line number is %d\n",function_line_num);
-		printf("        func_type is %d && s->preparse_flag is %d ",func_type,s->preparse_flag);
+		printf("        func_type is %d ",func_type);
         dump_token(s,&s->token);
 	#endif
 
@@ -32959,7 +33020,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
 
     //todo: need to further understand here
     if (func_type == JS_PARSE_FUNC_VAR) {
-        printf("here && function line number is %d\n",fd->line_num);
+        //printf("here && function line number is %d\n",fd->line_num);
         if (!(fd->js_mode & JS_MODE_STRICT) && func_kind == JS_FUNC_NORMAL
         &&  find_lexical_decl(ctx, fd, func_name, fd->scope_first, FALSE) < 0
         &&  !((func_idx = find_var(ctx, fd, func_name)) >= 0 && (func_idx & ARGUMENT_VAR_OFFSET))
@@ -32968,8 +33029,8 @@ static __exception int js_parse_function_decl2(JSParseState *s,
         }
         /* Create the lexical name here so that the function closure
            contains it */
-        printf("fd->is_eval is %d && fd->eval_type is %d\n",fd->is_eval,fd->eval_type);
-        printf("fd->scope_level is %d && fd->body_scope is %d\n",fd->scope_level,fd->body_scope);
+        //printf("fd->is_eval is %d && fd->eval_type is %d\n",fd->is_eval,fd->eval_type);
+        //printf("fd->scope_level is %d && fd->body_scope is %d\n",fd->scope_level,fd->body_scope);
         if (fd->is_eval &&
             (fd->eval_type == JS_EVAL_TYPE_GLOBAL ||
              fd->eval_type == JS_EVAL_TYPE_MODULE) &&
@@ -33009,12 +33070,13 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (pfd)
         *pfd = fd;
 
+    fd->strfilename=s->filename;
+
     //preparser
-    if(s->preparse_flag || fd->total_scope_level>=2 ){
-        //fd->state=1;
-        fd->strfilename=s->filename;
+    if(fd->total_scope_level>=2 ){
+        fd->state=1;
     }
-    s->preparse_flag=0;
+    
 
 	s->cur_func = fd;
     fd->func_name = func_name;
@@ -34038,6 +34100,7 @@ static JSValue JS_EvalFunctionInternal(JSContext *ctx, JSValue fun_obj,
     #ifdef PRINTER
         printf("  tag is %d\n",tag);
         //-2: JS_TAG_FUNCTION_BYTECODE
+        //-3: JS_TAG_MODULE
     #endif
 
     if (tag == JS_TAG_FUNCTION_BYTECODE) {
@@ -34198,6 +34261,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #endif
     
     err = js_parse_program(s);
+
     if (err) {
     fail:
         free_token(s, &s->token);
@@ -35641,7 +35705,11 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
         function_size += bc.byte_code_len;
     }
 
-    b = js_mallocz(ctx, function_size);
+    b = js_mallocz_rt(ctx->rt, function_size);
+    if (unlikely(!b)) {
+        JS_ThrowOutOfMemory(ctx);
+        b = NULL;
+    }
     if (!b)
         return JS_EXCEPTION;
             
@@ -36300,7 +36368,6 @@ static int check_function(JSContext *ctx, JSValueConst obj)
     if (likely(JS_IsFunction(ctx, obj)))
         return 0;
 
-    printf("ck3\n");
     JS_ThrowTypeError(ctx, "not a function");
     return -1;
 }
@@ -37971,6 +38038,10 @@ static void free_arg_list(JSContext *ctx, JSValue *tab, uint32_t len)
 static JSValue *build_arg_list(JSContext *ctx, uint32_t *plen,
                                JSValueConst array_arg)
 {
+    #ifdef PRINTER
+        printf("            6 enter build_arg_list\n");
+    #endif
+
     uint32_t len, i;
     JSValue *tab, ret;
     JSObject *p;
@@ -38015,6 +38086,9 @@ static JSValue *build_arg_list(JSContext *ctx, uint32_t *plen,
 static JSValue js_function_apply(JSContext *ctx, JSValueConst this_val,
                                  int argc, JSValueConst *argv, int magic)
 {
+    #ifdef PRINTER
+        printf("          5 enter js_function_apply\n");
+    #endif
     JSValueConst this_arg, array_arg;
     uint32_t len;
     JSValue *tab, ret;
@@ -40645,6 +40719,34 @@ exception:
     JS_FreeValue(ctx, raw);
     string_buffer_free(b);
     return JS_EXCEPTION;
+}
+
+//this part is used in test262
+/* only used in test262 */
+JSValue js_string_codePointRange(JSContext *ctx, JSValueConst this_val,
+                                 int argc, JSValueConst *argv)
+{
+    uint32_t start, end, i, n;
+    StringBuffer b_s, *b = &b_s;
+
+    if (JS_ToUint32(ctx, &start, argv[0]) ||
+        JS_ToUint32(ctx, &end, argv[1]))
+        return JS_EXCEPTION;
+    end = min_uint32(end, 0x10ffff + 1);
+
+    if (start > end) {
+        start = end;
+    }
+    n = end - start;
+    if (end > 0x10000) {
+        n += end - max_uint32(start, 0x10000);
+    }
+    if (string_buffer_init2(ctx, b, n, end >= 0x100))
+        return JS_EXCEPTION;
+    for(i = start; i < end; i++) {
+        string_buffer_putc(b, i);
+    }
+    return string_buffer_end(b);
 }
 
 
@@ -45495,7 +45597,7 @@ static JSValue js_proxy_call(JSContext *ctx, JSValueConst func_obj,
         return JS_EXCEPTION;
     if (!s->is_func) {
         JS_FreeValue(ctx, method);
-        printf("ck4\n");
+        //printf("ck4\n");
         return JS_ThrowTypeError(ctx, "not a function");
     }
     if (JS_IsUndefined(method))
@@ -45815,7 +45917,7 @@ static JSValue js_map_constructor(JSContext *ctx, JSValueConst new_target,
         if (JS_IsException(adder))
             goto fail;
         if (!JS_IsFunction(ctx, adder)) {
-            printf("ck5\n");
+            //printf("ck5\n");
             JS_ThrowTypeError(ctx, "set/add is not a function");
             goto fail;
         }
@@ -46597,6 +46699,9 @@ static void promise_reaction_data_free(JSRuntime *rt,
 static JSValue promise_reaction_job(JSContext *ctx, int argc,
                                     JSValueConst *argv)
 {
+    #ifdef PRINTER
+        printf("            enter promise_reaction_job\n");
+    #endif
     JSValueConst handler, arg, func;
     JSValue res, res2;
     BOOL is_reject;
@@ -46632,6 +46737,10 @@ static JSValue promise_reaction_job(JSContext *ctx, int argc,
         res2 = JS_UNDEFINED;
     }
     JS_FreeValue(ctx, res);
+
+    #ifdef PRINTMODULE
+        printf("            exit promise_reaction_job\n");
+    #endif
 
     return res2;
 }
@@ -46695,6 +46804,9 @@ static void reject_promise(JSContext *ctx, JSValueConst promise,
 static JSValue js_promise_resolve_thenable_job(JSContext *ctx,
                                                int argc, JSValueConst *argv)
 {
+    #ifdef PRINTER
+        printf("            enter js_promise_resolve_thenable_jo\n");
+    #endif
     JSValueConst promise, thenable, then;
     JSValue args[2], res;
 
@@ -46715,6 +46827,9 @@ static JSValue js_promise_resolve_thenable_job(JSContext *ctx,
     }
     JS_FreeValue(ctx, args[0]);
     JS_FreeValue(ctx, args[1]);
+    #ifdef PRINTER
+        printf("            enter js_promise_resolve_thenable_jo\n");
+    #endif
     return res;
 }
 
