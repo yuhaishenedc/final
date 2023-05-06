@@ -86,7 +86,7 @@
   16: dump bytecode in hex
   32: dump line number table
  */
-//#define DUMP_BYTECODE  (1)
+#define DUMP_BYTECODE  (1)
 /* dump the occurence of the automatic GC */
 //#define DUMP_GC
 /* dump objects freed by the garbage collector */
@@ -114,7 +114,7 @@
 #define PREPARSER
 #define PRINTER
 //#define PRINTGC
-//#define PRINTCALL
+#define PRINTCALL
 //#define PRINTFREE
 //#define PRINTATOM
 //#define PRINTRESOLVEVARIABLES
@@ -1644,7 +1644,7 @@ void JS_SetMemoryLimit(JSRuntime *rt, size_t limit)
     rt->malloc_state.malloc_limit = limit;
 }
 
-#define malloc(s) malloc_is_forbidden(s)
+//#define malloc(s) malloc_is_forbidden(s)
 #define free(p) free_is_forbidden(p)
 #define realloc(p,s) realloc_is_forbidden(p,s)
 
@@ -13706,7 +13706,7 @@ typedef struct JSFunctionDef {
         int line_num;
         const uint8_t *ptr;
     }token;
-    const char *strfilename;
+    char *strfilename;
     JSFunctionBytecode *reparse_bytecode;
 #endif
 
@@ -14451,10 +14451,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 		printf("\n      3 enter JS_CallInternal &&");
 	#endif
 
-    #ifdef PRINTMODULE
-        printf("      3 enter JS_CallInternal\n");
-    #endif
-
     JSRuntime *rt = caller_ctx->rt;
     JSContext *ctx;
     JSObject *p;
@@ -14544,10 +14540,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     b = p->u.func.function_bytecode;
 
     #ifdef PRINTER
-        printf("      function line number is %d && b->preparse_flag is %d && p->need_reparse_closure is %d\n",b->debug.line_num,b->preparse_flag,p->need_reparse_closure);
-    #endif
-
-    #ifdef PRINTMODULE    
+        printf("      function line number is %d && filename is %s\n",b->line_num,b->strfilename);
         printf("      b->preparse_flag is %d && p->need_reparse_closure is %d\n",b->preparse_flag,p->need_reparse_closure);
     #endif
 
@@ -14569,10 +14562,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         b->preparse_flag=2;
     }
-
-    #ifdef PRINTER
-        printf("      p->need_reparse_closure is %d && function line number is %d\n",p->need_reparse_closure,b->debug.line_num);
-    #endif
     
     //move to here
     init_list_head(&sf->var_ref_list);
@@ -14588,6 +14577,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             
             //if(!var_refs)
             //    goto fail;
+
             p->u.func.var_refs=reparse_var_refs;
 
             for(i = 0; i < b->closure_var_count; i++) {
@@ -14849,7 +14839,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     p->execution_sf=sf;
 
     #ifdef PRINTER
-        printf("      before the execution of bytecode function line number is %d\n",b->debug.line_num);
+        printf("      before the execution of bytecode function line number is %d\n",b->line_num);
     #endif
 
  restart:
@@ -15060,7 +15050,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_dup):
             #ifdef PRINTCALL
-                printf("\n        case OP_dup && %d && sp is %p\n",b->debug.line_num,sp);
+                printf("\n        case OP_dup && sp is %p\n",sp);
             #endif
             sp[0] = JS_DupValue(ctx, sp[-1]);
             sp++;
@@ -33070,13 +33060,15 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (pfd)
         *pfd = fd;
 
-    fd->strfilename=s->filename;
+    fd->strfilename=(char*)malloc(strlen(s->filename)+1);
+    strcpy(fd->strfilename,s->filename);
+
+    //fd->strfilename=s->filename;
 
     //preparser
-    if(fd->total_scope_level>=2 ){
+    if(fd->total_scope_level>=3 ){
         fd->state=1;
     }
-    
 
 	s->cur_func = fd;
     fd->func_name = func_name;
