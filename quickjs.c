@@ -13955,7 +13955,7 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
     }
     */
     
-    if(b->preparse_flag==1){
+    if(b->preparse_flag==1 || b->preparse_flag==2){
 
         func_obj=JS_NewObjectClass(ctx,func_kind_to_class_id[b->func_kind]);
 
@@ -14888,7 +14888,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_fclosure8):
             #ifdef PRINTCALL
-                printf("        case OP_fclosure8 && call function line number is %d && b->closure_var_count is %d\n",b->debug.line_num,b->closure_var_count);
+                printf("        case OP_fclosure8 &&  b->closure_var_count is %d\n",b->closure_var_count);
+                printf("        caller filename is %s && line number is %d\n",b->strfilename,b->line_num);
             #endif
 
             //note the JS_DupValue here, make ref_count of JSFunctionBytecode plus 1
@@ -15196,7 +15197,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_call2):
         CASE(OP_call3):
             #ifdef PRINTCALL
-                printf("\n        case OP_call%d && call function line number is %d\n",opcode-OP_call0,b->debug.line_num);
+                printf("\n        case OP_call%d && call function line number is %d\n",opcode-OP_call0,b->line_num);
             #endif
             call_argc = opcode - OP_call0;
             goto has_call_argc;
@@ -15220,7 +15221,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
 
                 #ifdef PRINTCALL
-                    printf("      after execution return to function line number %d\n",b->debug.line_num);
+                    printf("      after execution return to function line number %d && filename is %s\n",b->line_num,b->strfilename);
                 #endif
                 
                 
@@ -17544,7 +17545,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     rt->current_stack_frame = sf->prev_frame;
 
 	#ifdef PRINTER
-		printf("      3 exit JS_CallInternal && function line number is %d\n\n",b->debug.line_num);
+		printf("      3 exit JS_CallInternal && function line number is %d && filename is %s\n\n",b->line_num,b->strfilename);
 	#endif
 
     return ret_val;
@@ -21485,9 +21486,9 @@ static BOOL is_regexp_allowed(int tok)
 static int js_parse_skip_parens_token(JSParseState *s, int *pbits, BOOL no_line_terminator)
 {
 
-	//#ifdef PRINTER
-	//	printf("          5 enter js_parse_skip_parens_token\n");
-	//#endif
+	#ifdef PRINTER
+		printf("          5 enter js_parse_skip_parens_token\n");
+	#endif
 
     char state[256];
     size_t level = 0;
@@ -21503,13 +21504,12 @@ static int js_parse_skip_parens_token(JSParseState *s, int *pbits, BOOL no_line_
 
     for (;;) {
         
-        /*
         #ifdef PRINTER
             printf("          in js_parse_skip_parens_token for loop && token is ");
             dump_token(s,&s->token);
             printf("          level is %ld\n",level);
         #endif
-        */
+        
         switch(s->token.val) {
         case '(':
         case '[':
@@ -21610,9 +21610,9 @@ static int js_parse_skip_parens_token(JSParseState *s, int *pbits, BOOL no_line_
     if (js_parse_seek_token(s, &pos))
         return -1;
 
-	//#ifdef PRINTER
-	//	printf("          5 exit js_parse_skip_parens_token\n");
-	//#endif
+	#ifdef PRINTER
+		printf("          5 exit js_parse_skip_parens_token\n");
+	#endif
 
     return tok;
 }
@@ -32307,6 +32307,9 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         b->preparse_fd=fd;
         b->preparse_flag=1;
 
+        b->line_num=fd->line_num;
+        b->strfilename=fd->strfilename;
+
         //在JS_WriteFunctionBytecode函数中如果没有大于零的长度的话会报错，这里使用1的长度进行占位
         b->byte_code_len=1;
         b->byte_code_buf=(void *)((uint8_t*)b + 0);
@@ -33532,19 +33535,22 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
 
     //check if there is value that should not be saved
     //todo: use the part function source code to finish this process
-    fd->reparse_pos.last_line_num=s->last_line_num;
-    fd->reparse_pos.line_num=s->line_num;
-    fd->reparse_pos.got_lf=s->got_lf;
-    fd->reparse_pos.ptr=s->buf_ptr;
-    fd->reparse_pos.last_ptr=s->last_ptr;
-    fd->reparse_pos.buf_end=s->buf_end;
+    //fd->reparse_pos.last_line_num=s->last_line_num;
+    //fd->reparse_pos.line_num=s->line_num;
+    //fd->reparse_pos.got_lf=s->got_lf;
+    //fd->reparse_pos.ptr=s->buf_ptr;
+    //fd->reparse_pos.last_ptr=s->last_ptr;
+    //fd->reparse_pos.buf_end=s->buf_end;
 
     //use to save source code
-    fd->reparse_pos.static_ptr=ptr;
+    //fd->reparse_pos.static_ptr=ptr;
 
     fd->token.val=s->token.val;
-    fd->token.line_num=s->token.line_num;
-    fd->token.ptr=s->token.ptr;
+    //fd->token.line_num=s->token.line_num;
+    fd->token.line_num=1;
+
+    int start_len=s->buf_ptr-ptr;
+    
 
     int token_count=0;
     
@@ -33634,17 +33640,25 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
         return -1;
 
     //here fd->source_len is 0
-    //here can save the function source code, find a way to leverage this code to
-    //finish the reparse process
-    /*
-    if (!(fd->js_mode & JS_MODE_STRIP)) {
-        // save the function source code 
-        fd->source_len = s->buf_ptr - ptr;
-        fd->source = js_strndup(ctx, (const char *)ptr, fd->source_len);
-        if (!fd->source)
-            return -1;
-    }
-    */
+
+    fd->reparse_pos.last_line_num=0;
+    fd->reparse_pos.line_num=1;
+    fd->reparse_pos.got_lf=0;
+
+    fd->source_len = s->buf_ptr - ptr;
+    fd->source = js_strndup(s->ctx, (const char *)ptr, fd->source_len);
+    if (!fd->source)
+        return -1;
+
+    fd->reparse_pos.ptr=fd->source+start_len;
+    fd->token.ptr=fd->source;
+    //fd->reparse_pos.last_ptr=ptr;
+    fd->reparse_pos.buf_end=fd->source+fd->source_len;
+
+    
+    
+
+    
 
     #ifdef PRINTER
         printf("      3 exit js_preparse_function_decl2\n");
@@ -33666,6 +33680,10 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
     //BOOL is_expr;
     //int func_idx, lexical_func_idx = -1;
     BOOL has_opt_arg;
+
+    #ifdef PRINTER
+        printf("    filename is %s\n",fd->strfilename);
+    #endif
 
     fd->total_scope_level=-100;
 
@@ -33713,7 +33731,7 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
             goto fail;
         fd->defined_arg_count = 1;
     } else {
-
+        printf("ck1\n");
         if(s->token.val=='('){
             int skip_bits;
             /* if there is an '=' inside the parameter list, we consider there is a parameter expression inside */
@@ -33726,6 +33744,7 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
             if(js_parse_expect(s,'('))
                 goto fail;
         }
+        printf("ck2\n");
 
         if (fd->has_parameter_expressions) { 
             fd->scope_level = -1; /* force no parent scope */
@@ -33960,7 +33979,6 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
             goto fail;
     }
 
-    
     //todo: use this information to reparse the function bytecode
     if (!(fd->js_mode & JS_MODE_STRIP)) {
         // save the function source code

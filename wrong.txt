@@ -1,3 +1,5 @@
+gcc -g -Wall -MMD -MF .obj/quickjs.o.d -Wno-array-bounds -Wno-format-truncation -D_GNU_SOURCE -DCONFIG_VERSION=\"2021-03-27\" -p -O2 -flto -c -o .obj/quickjs.o quickjs.c
+gcc -g -flto -p -o run-test262 .obj/run-test262.o .obj/quickjs.o .obj/libregexp.o .obj/libunicode.o .obj/cutils.o .obj/quickjs-libc.o -lm -ldl -lpthread 
 time ./run-test262 -m -c test262.conf -a
   1 enter JS_NewRuntime2
   1 exit JS_NewRuntime2
@@ -6016,6 +6018,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'message'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -6152,6 +6162,12 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -6259,10 +6275,30 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 21
                       11 enter js_parse_postfix_expr && line number is 21 && token is: token: '('
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is token: '¥'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'args'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
         4 enter js_parse_function_decl2 && line number is 21
         func_type is 3 token: '('
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is token: '¥'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'args'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -6388,6 +6424,12 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -6577,7 +6619,7 @@ flags is 16
     byte code size is 90
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -6608,7 +6650,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492aa68c0
+0x5649db2e0890
     2a exit js_closure
 
     2b enter JS_CallFree
@@ -6621,7 +6663,8 @@ function preparse_flag is 0
         case OP_check_define_var
         case OP_check_define_var
         case OP_check_define_var
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -6653,7 +6696,7 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa8050
+0x5649db2e2020
     2a exit js_closure
 
         case OP_define_func
@@ -6665,7 +6708,8 @@ function preparse_flag is 0
         case OP_define_var
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -6695,7 +6739,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa80f0
+0x5649db2e20c0
     2a exit js_closure
 
         case OP_define_func
@@ -6705,7 +6749,7 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -6714,7 +6758,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field && sp is 0x7ffdda8d58d0
+        case OP_get_field && sp is 0x7ffde2a4cc60
         4 enter JS_GetPropertyInternal && prop is 59
         tag is -1
             6 enter find_own_property
@@ -6733,7 +6777,8 @@ function preparse_flag is 0
         4 exit JS_DefinePropertyValue
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -6763,7 +6808,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa8230
+0x5649db2e2200
     2a exit js_closure
 
         case OP_insert2
@@ -6797,11 +6842,11 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -6809,7 +6854,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -6835,7 +6881,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492aa8370
+0x5649db2e2340
     2a exit js_closure
 
         case OP_insert2
@@ -6848,12 +6894,12 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
           5 enter set_value
           enter here
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -6862,7 +6908,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field && sp is 0x7ffdda8d58d0
+        case OP_get_field && sp is 0x7ffde2a4cc60
         4 enter JS_GetPropertyInternal && prop is 459
         tag is -1
             6 enter find_own_property
@@ -6876,10 +6922,10 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
         case OP_get_loc0
-      function finish execution && line number is 22068
+      function finish execution && line number is 22089
       b->arg_count is 0 && b->var_count is 1
       enter the free local variable process
-      3 exit JS_CallInternal && function line number is 22068
+      3 exit JS_CallInternal && function line number is 1 && filename is (null)
 
     2b exit JS_CallFree
   1c exit JS_EvalFunctionInternal
@@ -6898,6 +6944,18 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'mustBeTrue'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'message'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -7215,6 +7273,18 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'a'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'b'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -7493,6 +7563,22 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'actual'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'expected'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'message'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -8127,6 +8213,22 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'actual'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'unexpected'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'message'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -8678,6 +8780,22 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'expectedErrorConstructor'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'func'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'message'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -9607,6 +9725,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'value'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -10914,7 +11040,7 @@ flags is 16
     byte code size is 85
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -10945,7 +11071,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492a9c180
+0x5649db2d6150
     2a exit js_closure
 
     2b enter JS_CallFree
@@ -10956,7 +11082,8 @@ function preparse_flag is 0
       arg_allocated_size is 0 && b->var_count is 1 && b->stack_size is 3
       before the execution of bytecode function line number is 1
         case OP_check_define_var
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -10986,7 +11113,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa8e60
+0x5649db2e2e30
     2a exit js_closure
 
         case OP_define_func
@@ -10996,7 +11123,7 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -11004,7 +11131,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -11034,7 +11162,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa89a0
+0x5649db2e2970
     2a exit js_closure
 
         case OP_insert2
@@ -11047,11 +11175,11 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -11059,7 +11187,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -11089,7 +11218,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aacd50
+0x5649db2e6d20
     2a exit js_closure
 
         case OP_insert2
@@ -11102,68 +11231,12 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
-          5 enter set_value
-          enter here
-          5 exit set_value
-
-        case OP_get_var && sp is 0x7ffdda8d58c0
-          5 enter JS_GetGlobalVar
-            6 enter find_own_property
-            6 exit find_own_property
-        4 enter JS_GetPropertyInternal && prop is 460
-        tag is -1
-            6 enter find_own_property
-            6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
-
-    2a enter js_closure
-function preparse_flag is 0
-    b->closure_var_count is 0
-          5 enter JS_NewObjectProtoClass && tag is -1
-          5 enter js_new_shape2
-          5 exit js_new_shape2
-            6 enter JS_NewObjectFromShape && class_id is 13
-            6 exit JS_NewObjectFromShape
-      3 enter js_closure2 && b->closure_var_count is 0 && b->preparse_flag is 0
-      3 exit js_closure2
-      3 enter js_function_set_properties
-        4 enter JS_DefinePropertyValue
-          5 enter JS_DefineProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefinePropertyValue
-        4 enter JS_DefinePropertyValue
-          5 enter JS_DefineProperty
-            6 enter find_own_property
-            6 exit find_own_property
-        4 exit JS_DefinePropertyValue
-      3 exit js_function_set_properties
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-        4 exit JS_DefineAutoInitProperty
-0x563492aa9f20
-    2a exit js_closure
-
-        case OP_insert2
-        case OP_put_field
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
           5 enter set_value
           enter here
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -11171,7 +11244,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -11201,7 +11275,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aa68c0
+0x5649db2e3ef0
     2a exit js_closure
 
         case OP_insert2
@@ -11214,12 +11288,12 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d58d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
           5 enter set_value
           enter here
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -11227,7 +11301,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -11257,7 +11332,64 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aabf00
+0x5649db2e0890
+    2a exit js_closure
+
+        case OP_insert2
+        case OP_put_field
+            6 enter find_own_property
+            6 exit find_own_property
+            6 enter find_own_property
+            6 exit find_own_property
+            6 enter find_own_property
+            6 exit find_own_property
+          5 enter add_shape_property
+          5 exit add_shape_property
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4cc60
+          5 enter set_value
+          enter here
+          5 exit set_value
+
+        case OP_get_var && sp is 0x7ffde2a4cc50
+          5 enter JS_GetGlobalVar
+            6 enter find_own_property
+            6 exit find_own_property
+        4 enter JS_GetPropertyInternal && prop is 460
+        tag is -1
+            6 enter find_own_property
+            6 exit find_own_property
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
+
+    2a enter js_closure
+function preparse_flag is 0
+    b->closure_var_count is 0
+          5 enter JS_NewObjectProtoClass && tag is -1
+          5 enter js_new_shape2
+          5 exit js_new_shape2
+            6 enter JS_NewObjectFromShape && class_id is 13
+            6 exit JS_NewObjectFromShape
+      3 enter js_closure2 && b->closure_var_count is 0 && b->preparse_flag is 0
+      3 exit js_closure2
+      3 enter js_function_set_properties
+        4 enter JS_DefinePropertyValue
+          5 enter JS_DefineProperty
+            6 enter find_own_property
+            6 exit find_own_property
+          5 enter add_shape_property
+          5 exit add_shape_property
+        4 exit JS_DefinePropertyValue
+        4 enter JS_DefinePropertyValue
+          5 enter JS_DefineProperty
+            6 enter find_own_property
+            6 exit find_own_property
+        4 exit JS_DefinePropertyValue
+      3 exit js_function_set_properties
+        4 enter JS_DefineAutoInitProperty
+            6 enter find_own_property
+            6 exit find_own_property
+        4 exit JS_DefineAutoInitProperty
+0x5649db2e5ed0
     2a exit js_closure
 
         case OP_insert2
@@ -11274,10 +11406,10 @@ function preparse_flag is 0
           5 enter set_value
           enter here
           5 exit set_value
-      function finish execution && line number is 22068
+      function finish execution && line number is 22089
       b->arg_count is 0 && b->var_count is 1
       enter the free local variable process
-      3 exit JS_CallInternal && function line number is 22068
+      3 exit JS_CallInternal && function line number is 1 && filename is (null)
 
     2b exit JS_CallFree
   1c exit JS_EvalFunctionInternal
@@ -11296,6 +11428,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11323,6 +11463,226 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 21
                       11 enter js_parse_postfix_expr && line number is 21 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '-'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '*'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 2
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'Number'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'POSITIVE_INFINITY'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'Number'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'NEGATIVE_INFINITY'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is number: 125
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'toString'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is string:  '125'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'false'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 22 && token is ident: 'function'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -11343,6 +11703,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11412,6 +11780,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11481,6 +11857,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11557,6 +11941,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11626,6 +12018,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11695,6 +12095,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11717,6 +12125,32 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 27
                       11 enter js_parse_postfix_expr && line number is 27 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 125
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 27 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 27 && token is ident: 'function'
             6 enter js_parse_cond_expr
@@ -11741,6 +12175,7 @@ flags is 16
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 28
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 27
         the total_scope_level is 3
@@ -11799,6 +12234,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -11821,6 +12264,40 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 28
                       11 enter js_parse_postfix_expr && line number is 28 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'toString'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is string:  '125'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'false'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 28 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 28 && token is ident: 'function'
             6 enter js_parse_cond_expr
@@ -11845,6 +12322,7 @@ flags is 16
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 29
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 28
         the total_scope_level is 3
@@ -11923,6 +12401,38 @@ flags is 16
 
     2 enter js_parse_source_element && line number is 31 && filename is test262/harness/testAtomics.js
       3 enter js_parse_statement_or_decl && line number is 31 && token is ident: 'for'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'var'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '='
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '<'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'bad_indices'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '•'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
         4b enter js_parse_var && token is ident: 'i'
           5b enter js_define_var && tok is -79 && token is token: '='
           5 enter find_var
@@ -12278,6 +12788,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12305,6 +12823,308 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 52
                       11 enter js_parse_postfix_expr && line number is 52 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '/'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '-'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is string:  '-0'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'undefined'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'NaN'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 0.5
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is string:  '0.5'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '-'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 0.9
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'password'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is string:  'qumquat'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '-'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'toString'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is string:  '0'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 5
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is ident: 'false'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 53 && token is ident: 'function'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -12325,6 +13145,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12401,6 +13229,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12467,6 +13303,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12534,6 +13378,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12601,6 +13453,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12667,6 +13527,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12733,6 +13601,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12802,6 +13678,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12824,6 +13708,18 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 60
                       11 enter js_parse_postfix_expr && line number is 60 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'password'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is string:  'qumquat'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 60 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 60 && token is string:  'qumquat'
             6 enter js_parse_cond_expr
@@ -12895,6 +13791,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12972,6 +13876,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -12994,6 +13906,32 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 62
                       11 enter js_parse_postfix_expr && line number is 62 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 62 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 62 && token is ident: 'function'
             6 enter js_parse_cond_expr
@@ -13018,6 +13956,7 @@ flags is 16
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 26
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 62
         the total_scope_level is 3
@@ -13076,6 +14015,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'view'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -13098,6 +14045,40 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 63
                       11 enter js_parse_postfix_expr && line number is 63 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'toString'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is string:  '0'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'valueOf'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'false'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 63 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 63 && token is ident: 'function'
             6 enter js_parse_cond_expr
@@ -13122,6 +14103,7 @@ flags is 16
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 27
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 63
         the total_scope_level is 3
@@ -13200,6 +14182,38 @@ flags is 16
 
     2 enter js_parse_source_element && line number is 66 && filename is test262/harness/testAtomics.js
       3 enter js_parse_statement_or_decl && line number is 66 && token is ident: 'for'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'var'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '='
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '<'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'good_indices'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '•'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
         4b enter js_parse_var && token is ident: 'i'
           5b enter js_define_var && tok is -79 && token is token: '='
           5 enter find_var
@@ -13555,6 +14569,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -13582,6 +14604,220 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 85
                       11 enter js_parse_postfix_expr && line number is 85 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'null'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'undefined'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'true'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'false'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Boolean'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'true'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 10
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 3.14
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Number'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 4
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is string:  'Hi there'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Date'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '/'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'password'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is string:  'qumquat'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'DataView'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'ArrayBuffer'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 10
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 4
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'ArrayBuffer'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 128
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'SharedArrayBuffer'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 128
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'new'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Error'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is string:  'Ouch'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 2
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 3
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 5
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 3
+          in js_parse_skip_parens_token for loop && token is number: 8
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'function'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'x'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'return'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '-'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is ident: 'x'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Symbol'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 2
+          in js_parse_skip_parens_token for loop && token is string:  'halleluja'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 3
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Object'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Date'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Math'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Atomics'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 86 && token is ident: 'null'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -13940,6 +15176,18 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 97
                       11 enter js_parse_postfix_expr && line number is 97 && token is: token: '{'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '{'
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'password'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ':'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is string:  'qumquat'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '}'
+          level is 2
+          5 exit js_parse_skip_parens_token
                         12 enter js_parse_object_literal && line number is 97 && token is token: '{'
           5 enter js_parse_assign_expr2 && line number is 97 && token is string:  'qumquat'
             6 enter js_parse_cond_expr
@@ -14247,6 +15495,34 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 102
                       11 enter js_parse_postfix_expr && line number is 102 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 1
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 2
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 3
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 5
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 8
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 102 && token is number: 1
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -14426,6 +15702,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'x'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -14675,6 +15959,38 @@ flags is 16
 
     2 enter js_parse_source_element && line number is 113 && filename is test262/harness/testAtomics.js
       3 enter js_parse_statement_or_decl && line number is 113 && token is ident: 'for'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'var'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '='
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '<'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'values'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '•'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
         4b enter js_parse_var && token is ident: 'i'
           5b enter js_define_var && tok is -79 && token is token: '='
           5 enter find_var
@@ -15179,7 +16495,7 @@ flags is 16
     byte code size is 14
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -15199,7 +16515,7 @@ flags is 16
     byte code size is 20
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
     2b enter resolve_variables && function line number is 20 && function name is 493
@@ -15285,7 +16601,7 @@ flags is 16
     byte code size is 81
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -15492,7 +16808,7 @@ flags is 16
     byte code size is 14
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -15512,7 +16828,7 @@ flags is 16
     byte code size is 20
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
     2b enter resolve_variables && function line number is 50 && function name is 468
@@ -15598,7 +16914,7 @@ flags is 16
     byte code size is 89
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -15946,7 +17262,7 @@ flags is 16
     byte code size is 44
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -15977,7 +17293,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492aabfa0
+0x5649db2e5f70
     2a exit js_closure
 
     2b enter JS_CallFree
@@ -15990,7 +17306,8 @@ function preparse_flag is 0
         case OP_check_define_var
         case OP_check_define_var
         case OP_check_define_var
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -16020,7 +17337,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492ab4620
+0x5649db2ee6b0
     2a exit js_closure
 
         case OP_define_func
@@ -16029,7 +17346,8 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -16059,7 +17377,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492ab1fb0
+0x5649db2ebfe0
     2a exit js_closure
 
         case OP_define_func
@@ -16068,7 +17386,8 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -16098,7 +17417,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aac040
+0x5649db2e6010
     2a exit js_closure
 
         case OP_define_func
@@ -16108,10 +17427,10 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
         case OP_get_loc0
-      function finish execution && line number is 22068
+      function finish execution && line number is 22089
       b->arg_count is 0 && b->var_count is 1
       enter the free local variable process
-      3 exit JS_CallInternal && function line number is 22068
+      3 exit JS_CallInternal && function line number is 1 && filename is (null)
 
     2b exit JS_CallFree
   1c exit JS_EvalFunctionInternal
@@ -16146,6 +17465,46 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 20
                       11 enter js_parse_postfix_expr && line number is 20 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'Float64Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Float32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int16Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int8Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint16Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint8Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint8ClampedArray'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 21 && token is ident: 'Float64Array'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -16644,6 +18003,18 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'selected'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -16706,6 +18077,38 @@ flags is 16
 
     2 enter js_parse_source_element && line number is 55 && filename is test262/harness/testTypedArray.js
       3 enter js_parse_statement_or_decl && line number is 55 && token is ident: 'for'
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'var'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '='
+          level is 2
+          in js_parse_skip_parens_token for loop && token is number: 0
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '<'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'constructors'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '.'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'length'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ';'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: '•'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'i'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
         4b enter js_parse_var && token is ident: 'i'
           5b enter js_define_var && tok is -79 && token is token: '='
           5 enter find_var
@@ -17065,6 +18468,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -17133,6 +18544,22 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 73
                       11 enter js_parse_postfix_expr && line number is 73 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'Float64Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Float32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint8ClampedArray'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 74 && token is ident: 'Float64Array'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -17242,6 +18669,14 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'f'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -17310,6 +18745,36 @@ flags is 16
                   9 enter js_parse_expr_binary  && level is: 0
                     10 enter js_parse_unary && line number is 87
                       11 enter js_parse_postfix_expr && line number is 87 && token is: token: '['
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '['
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'Int32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int16Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Int8Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint32Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint16Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'Uint8Array'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ']'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_assign_expr2 && line number is 88 && token is ident: 'Int32Array'
             6 enter js_parse_cond_expr
               7 enter js_parse_coalesce_expr
@@ -17497,6 +18962,18 @@ flags is 16
         func_type is 0 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'byteConversionValues'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ','
+          level is 2
+          in js_parse_skip_parens_token for loop && token is ident: 'fn'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -17625,6 +19102,14 @@ flags is 16
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'TA'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -17774,6 +19259,7 @@ flags is 16
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 180
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 113
         the total_scope_level is 3
@@ -18202,7 +19688,7 @@ flags is 16
     byte code size is 29
     2d exit compute_stack_size
   fd->closure_var_count is 1
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 1
 
     2b enter resolve_variables && function line number is 106 && function name is 508
@@ -18256,7 +19742,7 @@ flags is 16
     byte code size is 23
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
     2b enter resolve_variables && function line number is 1 && function name is 80
@@ -18421,7 +19907,7 @@ flags is 16
     byte code size is 222
     2d exit compute_stack_size
   fd->closure_var_count is 0
-  1b exit js_create_function && function line number is 22068
+  1b exit js_create_function && function line number is 22089
   b->closure_var_count is 0
 
 
@@ -18452,7 +19938,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492ab6e80
+0x5649db2f1370
     2a exit js_closure
 
     2b enter JS_CallFree
@@ -18482,7 +19968,8 @@ function preparse_flag is 0
         case OP_define_var
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -18512,7 +19999,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492ab6f20
+0x5649db2f3880
     2a exit js_closure
 
         case OP_define_func
@@ -18521,7 +20008,8 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -18551,7 +20039,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492ab98d0
+0x5649db2e5f70
     2a exit js_closure
 
         case OP_define_func
@@ -18560,7 +20048,8 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -18590,7 +20079,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aaf7f0
+0x5649db2d6150
     2a exit js_closure
 
         case OP_define_func
@@ -18599,7 +20088,8 @@ function preparse_flag is 0
             6 exit find_own_property
           5 enter add_shape_property
           5 exit add_shape_property
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function preparse_flag is 0
@@ -18629,7 +20119,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aabfa0
+0x5649db2f3d10
     2a exit js_closure
 
         case OP_define_func
@@ -18639,7 +20129,7 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
 
-        case OP_get_var && sp is 0x7ffdda8d5860
+        case OP_get_var && sp is 0x7ffde2a4cbf0
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18648,7 +20138,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d5870
+        case OP_get_var && sp is 0x7ffde2a4cc00
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18657,7 +20147,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d5880
+        case OP_get_var && sp is 0x7ffde2a4cc10
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18666,7 +20156,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d5890
+        case OP_get_var && sp is 0x7ffde2a4cc20
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18675,7 +20165,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d58a0
+        case OP_get_var && sp is 0x7ffde2a4cc30
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18684,7 +20174,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d58b0
+        case OP_get_var && sp is 0x7ffde2a4cc40
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18693,7 +20183,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d58c0
+        case OP_get_var && sp is 0x7ffde2a4cc50
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18702,7 +20192,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d58d0
+        case OP_get_var && sp is 0x7ffde2a4cc60
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18711,7 +20201,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d58e0
+        case OP_get_var && sp is 0x7ffde2a4cc70
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18721,7 +20211,7 @@ function preparse_flag is 0
             6 exit find_own_property
             6 enter JS_NewObjectFromShape && class_id is 2
             6 exit JS_NewObjectFromShape
-        case OP_array_from && call_argc is 9 && sp is 0x7ffdda8d58f0
+        case OP_array_from && call_argc is 9 && sp is 0x7ffde2a4cc80
         4 enter JS_DefinePropertyValue
           5 enter JS_DefineProperty
             6 enter find_own_property
@@ -18776,7 +20266,7 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d5860
+        case OP_get_var && sp is 0x7ffde2a4cbf0
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18785,7 +20275,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field2 && sp is 0x7ffdda8d5870
+        case OP_get_field2 && sp is 0x7ffde2a4cc00
         4 enter JS_GetPropertyInternal && prop is 258
         tag is -1
             6 enter find_own_property
@@ -18815,9 +20305,9 @@ function preparse_flag is 0
           5 exit JS_NewCFunction3
             6 enter find_own_property
             6 exit find_own_property
-        case OP_push_0 && sp is 0x7ffdda8d5880
-        case OP_push_2 && sp is 0x7ffdda8d5890
-        case OP_call_method || OP_tail_call_method && call_argc is 2 && sp is 0x7ffdda8d58a0
+        case OP_push_0 && sp is 0x7ffde2a4cc10
+        case OP_push_2 && sp is 0x7ffde2a4cc20
+        case OP_call_method || OP_tail_call_method && call_argc is 2 && sp is 0x7ffde2a4cc30
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 12
         4 enter js_call_c_function
@@ -18872,7 +20362,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit js_call_c_function
-      return to function line number 22068
+      return to function line number 22089
       in JS_CallInternal case OP_call_method
       i is -2
       tag is -1
@@ -18894,7 +20384,7 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d5860
+        case OP_get_var && sp is 0x7ffde2a4cbf0
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -18903,16 +20393,16 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field2 && sp is 0x7ffdda8d5870
+        case OP_get_field2 && sp is 0x7ffde2a4cc00
         4 enter JS_GetPropertyInternal && prop is 258
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
             6 enter find_own_property
             6 exit find_own_property
-        case OP_push_2 && sp is 0x7ffdda8d5880
-        case OP_push_7 && sp is 0x7ffdda8d5890
-        case OP_call_method || OP_tail_call_method && call_argc is 2 && sp is 0x7ffdda8d58a0
+        case OP_push_2 && sp is 0x7ffde2a4cc10
+        case OP_push_7 && sp is 0x7ffde2a4cc20
+        case OP_call_method || OP_tail_call_method && call_argc is 2 && sp is 0x7ffde2a4cc30
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 12
         4 enter js_call_c_function
@@ -18982,7 +20472,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit js_call_c_function
-      return to function line number 22068
+      return to function line number 22089
       in JS_CallInternal case OP_call_method
       i is -2
       tag is -1
@@ -19004,7 +20494,7 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d5860
+        case OP_get_var && sp is 0x7ffde2a4cbf0
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -19013,7 +20503,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field2 && sp is 0x7ffdda8d5870
+        case OP_get_field2 && sp is 0x7ffde2a4cc00
         4 enter JS_GetPropertyInternal && prop is 95
         tag is -1
             6 enter find_own_property
@@ -19042,7 +20532,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d5880
+        case OP_get_var && sp is 0x7ffde2a4cc10
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -19050,13 +20540,13 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_call_method || OP_tail_call_method && call_argc is 1 && sp is 0x7ffdda8d5890
+        case OP_call_method || OP_tail_call_method && call_argc is 1 && sp is 0x7ffde2a4cc20
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 12
         4 enter js_call_c_function
         cproto is 1
         4 exit js_call_c_function
-      return to function line number 22068
+      return to function line number 22089
       in JS_CallInternal case OP_call_method
       i is -2
       tag is -1
@@ -19075,10 +20565,10 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
         case OP_get_loc0
-      function finish execution && line number is 22068
+      function finish execution && line number is 22089
       b->arg_count is 0 && b->var_count is 1
       enter the free local variable process
-      3 exit JS_CallInternal && function line number is 22068
+      3 exit JS_CallInternal && function line number is 1 && filename is (null)
 
     2b exit JS_CallFree
   1c exit JS_EvalFunctionInternal
@@ -19252,6 +20742,14 @@ flags is 0
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'TA'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -19366,6 +20864,14 @@ flags is 0
         func_type is 2 ident: 'function'
           5 enter js_new_function_def
           5 exit js_new_function_def
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is ident: 'IdxGen'
+          level is 2
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
 
@@ -19443,6 +20949,7 @@ flags is 0
       3 enter js_preparse_function_decl2
           5 enter js_parse_function_check_names
           5 exit js_parse_function_check_names
+fd->source_len is 62
       3 exit js_preparse_function_decl2
         4 exit js_parse_function_decl2 && function line number is 18
         the total_scope_level is 3
@@ -19879,7 +21386,7 @@ function preparse_flag is 0
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
       3 exit js_function_set_properties
-0x563492ab6e80
+0x5649db2f1370
     2a exit js_closure
 
     2b enter JS_CallFree
@@ -19898,7 +21405,7 @@ function preparse_flag is 0
           5 enter add_shape_property
           5 exit add_shape_property
 
-        case OP_get_var && sp is 0x7ffdda8d58b0
+        case OP_get_var && sp is 0x7ffde2a4cc40
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -19907,9 +21414,9 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_dup && sp is 0x7ffdda8d58c0
+        case OP_dup && sp is 0x7ffde2a4cc50
 
-        case OP_get_var && sp is 0x7ffdda8d58d0
+        case OP_get_var && sp is 0x7ffde2a4cc60
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -19918,12 +21425,12 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field && sp is 0x7ffdda8d58e0
+        case OP_get_field && sp is 0x7ffde2a4cc70
         4 enter JS_GetPropertyInternal && prop is 418
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_push_2 && sp is 0x7ffdda8d58e0
+        case OP_push_2 && sp is 0x7ffde2a4cc70
 
         case OP_call_constructor
 
@@ -19948,7 +21455,7 @@ function preparse_flag is 0
           5 exit set_value
         4 exit JS_SetGlobalVar
 
-        case OP_get_var && sp is 0x7ffdda8d58b0
+        case OP_get_var && sp is 0x7ffde2a4cc40
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -19957,14 +21464,14 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field2 && sp is 0x7ffdda8d58c0
+        case OP_get_field2 && sp is 0x7ffde2a4cc50
         4 enter JS_GetPropertyInternal && prop is 258
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
             6 enter find_own_property
             6 exit find_own_property
-        case OP_call_method || OP_tail_call_method && call_argc is 0 && sp is 0x7ffdda8d58d0
+        case OP_call_method || OP_tail_call_method && call_argc is 0 && sp is 0x7ffde2a4cc60
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 12
         4 enter js_call_c_function
@@ -20049,7 +21556,7 @@ function preparse_flag is 0
           5 exit set_value
         4 exit JS_SetGlobalVar
 
-        case OP_get_var && sp is 0x7ffdda8d58b0
+        case OP_get_var && sp is 0x7ffde2a4cc40
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20057,7 +21564,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 1 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is (null) && line number is 1
 
     2a enter js_closure
 function line number is 15
@@ -20088,11 +21596,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aba5d0
+0x5649db2f4740
     2a exit js_closure
 
 
-        case OP_get_var && sp is 0x7ffdda8d58d0
+        case OP_get_var && sp is 0x7ffde2a4cc60
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20107,14 +21615,14 @@ function preparse_flag is 0
 
         case OP_get_arg1
 
-        case OP_dup && sp is 0x7ffdda8d5550
+        case OP_dup && sp is 0x7ffde2a4c8e0
 
         case OP_if_true8
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d5550
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4c8e0
           5 enter set_value
           5 exit set_value
-        case OP_push_0 && sp is 0x7ffdda8d5540
-        case OP_put_loc1 && tag is 0 && sp is 0x7ffdda8d5550
+        case OP_push_0 && sp is 0x7ffde2a4c8d0
+        case OP_put_loc1 && tag is 0 && sp is 0x7ffde2a4c8e0
           5 enter set_value
           5 exit set_value
         case OP_get_loc1
@@ -20132,24 +21640,24 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
 
-        case OP_get_arg0 && sp is 0x7ffdda8d5550
+        case OP_get_arg0 && sp is 0x7ffde2a4c8e0
 
-        case OP_call1 && call function line number is 30947342
+        case OP_call1 && call function line number is 53
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 13
       function line number is 15 && filename is test262/test-wrong/bad-range.js
       b->preparse_flag is 0 && p->need_reparse_closure is 0
       arg_allocated_size is 0 && b->var_count is 1 && b->stack_size is 3
       before the execution of bytecode function line number is 15
-        case OP_set_loc_uninitialized && idx is 0 && sp is 0x7ffdda8d51c0
+        case OP_set_loc_uninitialized && idx is 0 && sp is 0x7ffde2a4c550
           5 enter set_value
           5 exit set_value
 
-        case OP_get_arg0 && sp is 0x7ffdda8d51c0
+        case OP_get_arg0 && sp is 0x7ffde2a4c550
 
-        case OP_dup && sp is 0x7ffdda8d51d0
+        case OP_dup && sp is 0x7ffde2a4c560
 
-        case OP_get_var && sp is 0x7ffdda8d51e0
+        case OP_get_var && sp is 0x7ffde2a4c570
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20169,11 +21677,11 @@ function preparse_flag is 0
             6 enter JS_NewObjectFromShape && class_id is 26
             6 exit JS_NewObjectFromShape
         4 exit js_call_c_function
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d51d0
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4c560
           5 enter set_value
           5 exit set_value
 
-        case OP_get_var && sp is 0x7ffdda8d51c0
+        case OP_get_var && sp is 0x7ffde2a4c550
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20181,7 +21689,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 15 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/test-wrong/bad-range.js && line number is 15
 
     2a enter js_closure
 function line number is 17
@@ -20212,7 +21721,7 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aba750
+0x5649db2f48c0
     2a exit js_closure
 
 
@@ -20223,7 +21732,8 @@ function preparse_flag is 0
       b->preparse_flag is 0 && p->need_reparse_closure is 0
       arg_allocated_size is 0 && b->var_count is 4 && b->stack_size is 7
       before the execution of bytecode function line number is 20
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20253,10 +21763,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aba830
+0x5649db2f49a0
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20286,10 +21797,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aba910
+0x5649db2f4a80
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20319,10 +21831,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492aba9f0
+0x5649db2f4b60
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20352,10 +21865,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492abaad0
+0x5649db2f4c40
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20385,10 +21899,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492ababb0
+0x5649db2f4d20
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20418,10 +21933,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492abac90
+0x5649db2f4e00
     2a exit js_closure
 
-        case OP_fclosure8 && call function line number is 22068 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/harness/testAtomics.js && line number is 20
 
     2a enter js_closure
 function preparse_flag is 0
@@ -20451,12 +21967,12 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefineAutoInitProperty
-0x563492abad70
+0x5649db2f4ee0
     2a exit js_closure
 
             6 enter JS_NewObjectFromShape && class_id is 2
             6 exit JS_NewObjectFromShape
-        case OP_array_from && call_argc is 7 && sp is 0x7ffdda8d4ea0
+        case OP_array_from && call_argc is 7 && sp is 0x7ffde2a4c230
         4 enter JS_DefinePropertyValue
           5 enter JS_DefineProperty
             6 enter find_own_property
@@ -20492,11 +22008,11 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
         4 exit JS_DefinePropertyValue
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d4e40
+        case OP_put_loc0 && tag is -1 && sp is 0x7ffde2a4c1d0
           5 enter set_value
           5 exit set_value
-        case OP_push_0 && sp is 0x7ffdda8d4e30
-        case OP_put_loc1 && tag is 0 && sp is 0x7ffdda8d4e40
+        case OP_push_0 && sp is 0x7ffde2a4c1c0
+        case OP_put_loc1 && tag is 0 && sp is 0x7ffde2a4c1d0
           5 enter set_value
           5 exit set_value
         case OP_get_loc1
@@ -20514,9 +22030,9 @@ function preparse_flag is 0
           5 enter set_value
           5 exit set_value
 
-        case OP_get_arg0 && sp is 0x7ffdda8d4e40
+        case OP_get_arg0 && sp is 0x7ffde2a4c1d0
 
-        case OP_call1 && call function line number is 22068
+        case OP_call1 && call function line number is 20
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 13
       function line number is 17 && filename is test262/test-wrong/bad-range.js
@@ -20524,7 +22040,7 @@ function preparse_flag is 0
       arg_allocated_size is 0 && b->var_count is 0 && b->stack_size is 5
       before the execution of bytecode function line number is 17
 
-        case OP_get_var && sp is 0x7ffdda8d4a90
+        case OP_get_var && sp is 0x7ffde2a4be20
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20533,13 +22049,13 @@ function preparse_flag is 0
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_field2 && sp is 0x7ffdda8d4aa0
+        case OP_get_field2 && sp is 0x7ffde2a4be30
         4 enter JS_GetPropertyInternal && prop is 482
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
 
-        case OP_get_var && sp is 0x7ffdda8d4ab0
+        case OP_get_var && sp is 0x7ffde2a4be40
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20547,7 +22063,8 @@ function preparse_flag is 0
         tag is -1
             6 enter find_own_property
             6 exit find_own_property
-        case OP_fclosure8 && call function line number is 17 && b->closure_var_count is 0
+        case OP_fclosure8 &&  b->closure_var_count is 0
+        caller filename is test262/test-wrong/bad-range.js && line number is 17
 
     2a enter js_closure
 function line number is 18
@@ -20577,7 +22094,7 @@ function preparse_flag is 1
         4 exit JS_DefineAutoInitProperty
     2a exit js_closure in advance && line number is 18
         case OP_push_atom_value
-        case OP_call_method || OP_tail_call_method && call_argc is 3 && sp is 0x7ffdda8d4ae0
+        case OP_call_method || OP_tail_call_method && call_argc is 3 && sp is 0x7ffde2a4be70
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 13
       function line number is 68 && filename is test262/harness/assert.js
@@ -20591,7 +22108,7 @@ function preparse_flag is 1
 
         case OP_get_arg2
 
-        case OP_get_var && sp is 0x7ffdda8d4750
+        case OP_get_var && sp is 0x7ffde2a4bae0
           5 enter JS_GetGlobalVar
             6 enter find_own_property
             6 exit find_own_property
@@ -20610,448 +22127,23 @@ function preparse_flag is 1
 
         case OP_get_arg1
 
-        case OP_call0 && call function line number is 118072
+        case OP_call0 && call function line number is 68
 
       3 enter JS_CallInternal && tag is -1 && p->class_id is 13
-      function line number is 0 && filename is (null)
+      function line number is 18 && filename is test262/test-wrong/bad-range.js
       b->preparse_flag is 1 && p->need_reparse_closure is -9877
       enter the re-parse process
         4 enter js_recreate_function && function line number is 18
-    2 enter js_parse_function_decl2_continue && s->line number is 18 && token is token: '('
-
-    2 enter js_parse_source_element && line number is 19 && filename is test262/test-wrong/bad-range.js
-      3 enter js_parse_statement_or_decl && line number is 19 && token is ident: 'Atomics'
-        4a enter js_parse_expr2
-          5 enter js_parse_assign_expr2 && line number is 19 && token is ident: 'Atomics'
-            6 enter js_parse_cond_expr
-              7 enter js_parse_coalesce_expr
-                8 enter js_parse_logical_and_or
-                8 enter js_parse_logical_and_or
-                  9 enter js_parse_expr_binary  && level is: 8
-                  9 enter js_parse_expr_binary  && level is: 7
-                  9 enter js_parse_expr_binary  && level is: 6
-                  9 enter js_parse_expr_binary  && level is: 5
-                  9 enter js_parse_expr_binary  && level is: 4
-                  9 enter js_parse_expr_binary  && level is: 3
-                  9 enter js_parse_expr_binary  && level is: 2
-                  9 enter js_parse_expr_binary  && level is: 1
-                  9 enter js_parse_expr_binary  && level is: 0
-                    10 enter js_parse_unary && line number is 19
-                      11 enter js_parse_postfix_expr && line number is 19 && token is: ident: 'Atomics'
-                      case TOK_IDENT
-                      inside the for loop && s->token.val is 46 && token is token: '.'
-                      in s->token.val == '.' && get_prev_opcode is 182
-                      inside the for loop && s->token.val is 40 && token is token: '('
-                      in s->token.val = '(' && get_prev_opcode is 65
-                      in s->token.val = '(' && call_type is 0
-          5 enter js_parse_assign_expr2 && line number is 19 && token is ident: 'view'
-            6 enter js_parse_cond_expr
-              7 enter js_parse_coalesce_expr
-                8 enter js_parse_logical_and_or
-                8 enter js_parse_logical_and_or
-                  9 enter js_parse_expr_binary  && level is: 8
-                  9 enter js_parse_expr_binary  && level is: 7
-                  9 enter js_parse_expr_binary  && level is: 6
-                  9 enter js_parse_expr_binary  && level is: 5
-                  9 enter js_parse_expr_binary  && level is: 4
-                  9 enter js_parse_expr_binary  && level is: 3
-                  9 enter js_parse_expr_binary  && level is: 2
-                  9 enter js_parse_expr_binary  && level is: 1
-                  9 enter js_parse_expr_binary  && level is: 0
-                    10 enter js_parse_unary && line number is 19
-                      11 enter js_parse_postfix_expr && line number is 19 && token is: ident: 'view'
-                      case TOK_IDENT
-                      inside the for loop && s->token.val is 44 && token is token: ','
-                      11 exit js_parse_postfix_expr
-                    10 exit js_parse_unary
-                    line number is 19
-                8 exit js_parse_logical_and_or
-                8 exit js_parse_logical_and_or
-              7 exit js_parse_coalesce_expr
-            6 exit js_parse_cond_expr
-          5 exit js_parse_assign_expr2
-          5 enter js_parse_assign_expr2 && line number is 19 && token is ident: 'IdxGen'
-            6 enter js_parse_cond_expr
-              7 enter js_parse_coalesce_expr
-                8 enter js_parse_logical_and_or
-                8 enter js_parse_logical_and_or
-                  9 enter js_parse_expr_binary  && level is: 8
-                  9 enter js_parse_expr_binary  && level is: 7
-                  9 enter js_parse_expr_binary  && level is: 6
-                  9 enter js_parse_expr_binary  && level is: 5
-                  9 enter js_parse_expr_binary  && level is: 4
-                  9 enter js_parse_expr_binary  && level is: 3
-                  9 enter js_parse_expr_binary  && level is: 2
-                  9 enter js_parse_expr_binary  && level is: 1
-                  9 enter js_parse_expr_binary  && level is: 0
-                    10 enter js_parse_unary && line number is 19
-                      11 enter js_parse_postfix_expr && line number is 19 && token is: ident: 'IdxGen'
-                      case TOK_IDENT
-                      inside the for loop && s->token.val is 40 && token is token: '('
-                      in s->token.val = '(' && get_prev_opcode is 182
-                      in s->token.val = '(' && call_type is 0
-          5 enter js_parse_assign_expr2 && line number is 19 && token is ident: 'view'
-            6 enter js_parse_cond_expr
-              7 enter js_parse_coalesce_expr
-                8 enter js_parse_logical_and_or
-                8 enter js_parse_logical_and_or
-                  9 enter js_parse_expr_binary  && level is: 8
-                  9 enter js_parse_expr_binary  && level is: 7
-                  9 enter js_parse_expr_binary  && level is: 6
-                  9 enter js_parse_expr_binary  && level is: 5
-                  9 enter js_parse_expr_binary  && level is: 4
-                  9 enter js_parse_expr_binary  && level is: 3
-                  9 enter js_parse_expr_binary  && level is: 2
-                  9 enter js_parse_expr_binary  && level is: 1
-                  9 enter js_parse_expr_binary  && level is: 0
-                    10 enter js_parse_unary && line number is 19
-                      11 enter js_parse_postfix_expr && line number is 19 && token is: ident: 'view'
-                      case TOK_IDENT
-                      inside the for loop && s->token.val is 41 && token is token: ')'
-                      11 exit js_parse_postfix_expr
-                    10 exit js_parse_unary
-                    line number is 19
-                8 exit js_parse_logical_and_or
-                8 exit js_parse_logical_and_or
-              7 exit js_parse_coalesce_expr
-            6 exit js_parse_cond_expr
-          5 exit js_parse_assign_expr2
-                      inside the for loop && s->token.val is 44 && token is token: ','
-                      11 exit js_parse_postfix_expr
-                    10 exit js_parse_unary
-                    line number is 19
-                8 exit js_parse_logical_and_or
-                8 exit js_parse_logical_and_or
-              7 exit js_parse_coalesce_expr
-            6 exit js_parse_cond_expr
-          5 exit js_parse_assign_expr2
-          5 enter js_parse_assign_expr2 && line number is 19 && token is number: 10
-            6 enter js_parse_cond_expr
-              7 enter js_parse_coalesce_expr
-                8 enter js_parse_logical_and_or
-                8 enter js_parse_logical_and_or
-                  9 enter js_parse_expr_binary  && level is: 8
-                  9 enter js_parse_expr_binary  && level is: 7
-                  9 enter js_parse_expr_binary  && level is: 6
-                  9 enter js_parse_expr_binary  && level is: 5
-                  9 enter js_parse_expr_binary  && level is: 4
-                  9 enter js_parse_expr_binary  && level is: 3
-                  9 enter js_parse_expr_binary  && level is: 2
-                  9 enter js_parse_expr_binary  && level is: 1
-                  9 enter js_parse_expr_binary  && level is: 0
-                    10 enter js_parse_unary && line number is 19
-                      11 enter js_parse_postfix_expr && line number is 19 && token is: number: 10
-                      inside the for loop && s->token.val is 41 && token is token: ')'
-                      11 exit js_parse_postfix_expr
-                    10 exit js_parse_unary
-                    line number is 19
-                8 exit js_parse_logical_and_or
-                8 exit js_parse_logical_and_or
-              7 exit js_parse_coalesce_expr
-            6 exit js_parse_cond_expr
-          5 exit js_parse_assign_expr2
-                      inside the for loop && s->token.val is 59 && token is token: ';'
-                      11 exit js_parse_postfix_expr
-                    10 exit js_parse_unary
-                    line number is 19
-                8 exit js_parse_logical_and_or
-                8 exit js_parse_logical_and_or
-              7 exit js_parse_coalesce_expr
-            6 exit js_parse_cond_expr
-          5 exit js_parse_assign_expr2
-        4 exit js_parse_expr2
-      3 exit js_parse_statement_or_decl
-    2 exit js_parse_source_element && line number is 20
-    2 exit js_parse_function_decl2_continue && line number is 20
-    function line number is 18 && parent function line number is 17
-    2b enter resolve_variables && function line number is 18 && function name is 0
-    function closure_var_count is 0
-        enter resolve_scope_var && s->closure_var_count is 0 && scope_level is 1
-        after local search && var_idx is -1 && is_arg_scope is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 18 && name is 435
-        stage 1 var_idx is -1
-        looking inside the parent scope && parent line number is 17
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 17 && name is 435
-            fd->arg_count is 1 && i is 0 && var_name is 464
-        var_idx is -1
-        looking inside the parent scope && parent line number is 15
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 15 && name is 435
-            fd->arg_count is 1 && i is 0 && var_name is 512
-        var_idx is -1
-        looking inside the parent scope && parent line number is 1
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 1 && name is 435
-        var_idx is -1
-        outside the parent process && fd->line_num is 1
-        var_idx is -1 && fd->is_eval is 1 && fd->closure_var_count is 0
-        s->closure_var_count is 0
-        exit resolve_scope_var && s->closure_var_count is 0
-        enter resolve_scope_var && s->closure_var_count is 0 && scope_level is 1
-        after local search && var_idx is -1 && is_arg_scope is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 18 && name is 471
-        stage 1 var_idx is -1
-        looking inside the parent scope && parent line number is 17
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 17 && name is 471
-            fd->arg_count is 1 && i is 0 && var_name is 464
-        var_idx is -1
-        looking inside the parent scope && parent line number is 15
-        var_idx is 0 && is_arg_scope is 0 && is_pseudo_var is 0
-        outside the parent process && fd->line_num is 15
-        var_idx is 0 && fd->is_eval is 0 && fd->closure_var_count is 0
-        s->closure_var_count is 0
-          enter get_closure_var2 && s->line_num is 18 && s->closure_var_count is 0
-          enter get_closure_var2 && s->line_num is 17 && s->closure_var_count is 0
-          s->line_num is 17 && s->closure_var_count is 0 && is_local is 1
-            enter add_closure_var && s->line_num is 17
-          s->line_num is 18 && var_idx 0
-          s->line_num is 18 && s->closure_var_count is 0 && is_local is 0
-            enter add_closure_var && s->line_num is 18
-        exit resolve_scope_var && s->closure_var_count is 1
-        enter resolve_scope_var && s->closure_var_count is 1 && scope_level is 1
-        after local search && var_idx is -1 && is_arg_scope is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 18 && name is 464
-        stage 1 var_idx is -1
-        looking inside the parent scope && parent line number is 17
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 17 && name is 464
-            fd->arg_count is 1 && i is 0 && var_name is 464
-        var_idx is 536870912
-        outside the parent process && fd->line_num is 17
-        var_idx is 536870912 && fd->is_eval is 0 && fd->closure_var_count is 1
-        s->closure_var_count is 1
-        ARGUMENT_VAR_OFFSET
-          enter get_closure_var2 && s->line_num is 18 && s->closure_var_count is 1
-          s->line_num is 18 && s->closure_var_count is 1 && is_local is 1
-            enter add_closure_var && s->line_num is 18
-        exit resolve_scope_var && s->closure_var_count is 2
-        enter resolve_scope_var && s->closure_var_count is 2 && scope_level is 1
-        after local search && var_idx is -1 && is_arg_scope is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 18 && name is 471
-        stage 1 var_idx is -1
-        looking inside the parent scope && parent line number is 17
-        var_idx is -1 && is_arg_scope is 0 && is_pseudo_var is 0
-          5 enter find_var
-            6 enter find_arg && function line number is 17 && name is 471
-            fd->arg_count is 1 && i is 0 && var_name is 464
-        var_idx is -1
-        looking inside the parent scope && parent line number is 15
-        var_idx is 0 && is_arg_scope is 0 && is_pseudo_var is 0
-        outside the parent process && fd->line_num is 15
-        var_idx is 0 && fd->is_eval is 0 && fd->closure_var_count is 0
-        s->closure_var_count is 2
-          enter get_closure_var2 && s->line_num is 18 && s->closure_var_count is 2
-          enter get_closure_var2 && s->line_num is 17 && s->closure_var_count is 1
-          s->line_num is 17 && s->closure_var_count is 1 && is_local is 1
-          s->line_num is 18 && var_idx 0
-          s->line_num is 18 && s->closure_var_count is 2 && is_local is 0
-        exit resolve_scope_var && s->closure_var_count is 2
-    2b exit resolve_variables
-    2 enter resolve_labels
-    2 exit resolve_labels
-    2c enter compute_stack_size && function name is 0 && line number is 18
-    byte code size is 24
-    2d exit compute_stack_size
-test262/test-wrong/bad-range.js:18: function: <null>
-  closure vars:
-    0: view parent:loc0 let
-    1: IdxGen local:arg0 var
-  stack_size: 5
-  opcodes:
-;; function() {
-;;       Atomics.add(view, IdxGen(view), 10);
-
-        get_var Atomics
-        get_field2 add
-        get_var_ref_check 0: view
-        get_var_ref1 1: IdxGen
-        get_var_ref_check 0: view
-        call1 1
-        push_i8 10
-        call_method 3
-
-;;     }
-
-        return_undef
-
-
-        4 exit js_recreate_function && function line number is 18
-      i is 0 && cv->is_local is 0 && cv->is_arg is 0 && cv->var_idx is 0
-      cv not local && cv->var_idx is 0
-      enter the while loop && function line number is 17 && fd->closure_var_count is 1
-      tmp->var_idx is 0 && tmp->is_local is 1
-      parent not exit
-      i is 1 && cv->is_local is 1 && cv->is_arg is 1 && cv->var_idx is 0
-      exit_flag is 0
-      var ref tag is -1
-      arg_allocated_size is 0 && b->var_count is 0 && b->stack_size is 5
-      before the execution of bytecode function line number is 0
-
-        case OP_get_var && sp is 0x7ffdda8d43d0
-          5 enter JS_GetGlobalVar
-            6 enter find_own_property
-            6 exit find_own_property
-        4 enter JS_GetPropertyInternal && prop is 435
-        tag is -1
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter JS_NewObjectProtoClass && tag is -1
-          5 enter js_new_shape2
-          5 exit js_new_shape2
-            6 enter JS_NewObjectFromShape && class_id is 1
-            6 exit JS_NewObjectFromShape
-          5 enter JS_SetPropertyFunctionList
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-        4 enter JS_DefineAutoInitProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefineAutoInitProperty
-          5 enter JS_SetPropertyFunctionList
-            6 enter find_own_property
-            6 exit find_own_property
-
-        case OP_get_field2 && sp is 0x7ffdda8d43e0
-        4 enter JS_GetPropertyInternal && prop is 104
-        tag is -1
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter JS_NewCFunction3
-          5 enter JS_NewObjectProtoClass && tag is -1
-          5 enter js_new_shape2
-          5 exit js_new_shape2
-            6 enter JS_NewObjectFromShape && class_id is 12
-            6 exit JS_NewObjectFromShape
-      3 enter js_function_set_properties
-        4 enter JS_DefinePropertyValue
-          5 enter JS_DefineProperty
-            6 enter find_own_property
-            6 exit find_own_property
-          5 enter add_shape_property
-          5 exit add_shape_property
-        4 exit JS_DefinePropertyValue
-        4 enter JS_DefinePropertyValue
-          5 enter JS_DefineProperty
-            6 enter find_own_property
-            6 exit find_own_property
-        4 exit JS_DefinePropertyValue
-      3 exit js_function_set_properties
-          5 exit JS_NewCFunction3
-            6 enter find_own_property
-            6 exit find_own_property
-        case OP_get_var_ref_check
-
-        case OP_get_var_ref1
-          JS_VALUE_GET_TAG is -1
-        case OP_get_var_ref_check
-
-        case OP_call1 && call function line number is 18
-
-      3 enter JS_CallInternal && tag is -1 && p->class_id is 13
-      function line number is 22 && filename is test262/harness/testAtomics.js
-      b->preparse_flag is 0 && p->need_reparse_closure is 0
-      arg_allocated_size is 0 && b->var_count is 0 && b->stack_size is 1
-      before the execution of bytecode function line number is 22
-        case OP_push_-1 && sp is 0x7ffdda8d40b0
-      function finish execution && line number is 0
-      b->arg_count is 1 && b->var_count is 0
-      3 exit JS_CallInternal && function line number is 0
-
-      after execution return to function line number 18
-      in JS_CallInternal OP_callx has_call_argc && i is -1
-      p->class_id is 13 && ref_count is 4
-      function line number is 0 && bytecode length is 2
-      in JS_CallInternal OP_callx has_call_argc && i is 0
-      p->class_id is 26 && ref_count is 3
-        case OP_pushi8
-        case OP_call_method || OP_tail_call_method && call_argc is 3 && sp is 0x7ffdda8d4420
-
-      3 enter JS_CallInternal && tag is -1 && p->class_id is 12
-        4 enter js_call_c_function
-        cproto is 1
+    2 enter js_parse_function_decl2_continue && s->line number is 1 && token is token: '('
+    filename is test262/test-wrong/bad-range.js
+ck1
+          5 enter js_parse_skip_parens_token
+          in js_parse_skip_parens_token for loop && token is token: '('
+          level is 1
+          in js_parse_skip_parens_token for loop && token is token: ')'
+          level is 2
+          5 exit js_parse_skip_parens_token
+ck2
           5 enter JS_NewObjectProtoClass && tag is -1
           5 enter js_new_shape2
           5 exit js_new_shape2
@@ -21064,22 +22156,6 @@ test262/test-wrong/bad-range.js:18: function: <null>
           5 enter add_shape_property
           5 exit add_shape_property
         4 exit JS_DefinePropertyValue
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
-            6 enter find_own_property
-            6 exit find_own_property
         4 enter JS_DefinePropertyValue
           5 enter JS_DefineProperty
             6 enter find_own_property
@@ -21087,23 +22163,10 @@ test262/test-wrong/bad-range.js:18: function: <null>
           5 enter add_shape_property
           5 exit add_shape_property
         4 exit JS_DefinePropertyValue
-        4 exit js_call_c_function
-      return to function line number 18
-      function finish execution && line number is 18
-      b->arg_count is 0 && b->var_count is 0
-      3 exit JS_CallInternal && function line number is 18
-
-      after execution return to function line number 118072
-        case OP_put_loc0 && tag is -1 && sp is 0x7ffdda8d4750
-          5 enter set_value
-          5 exit set_value
-        case OP_get_loc0
-        case OP_push_atom_value
-
-        case OP_dup && sp is 0x7ffdda8d4760
-
-        case OP_if_true8
-
-        case OP_drop
-        case OP_get_loc0
-    
+        4 enter JS_DefinePropertyValue
+          5 enter JS_DefineProperty
+            6 enter find_own_property
+            6 exit find_own_property
+          5 enter add_shape_property
+          5 exit add_shape_property
+        4 e
