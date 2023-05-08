@@ -24,8 +24,11 @@ function testWithAtomicsOutOfBoundsIndices(f) {
     function(view) { return view.length * 2; },
     function(view) { return Number.POSITIVE_INFINITY; },
     function(view) { return Number.NEGATIVE_INFINITY; },
-    function(view) { return { valueOf: function() { return 125; } }; },
-    function(view) { return { toString: function() { return '125'; }, valueOf: false }; }, // non-callable valueOf triggers invocation of toString
+    function(view) { return { 
+      valueOf: function() { return 125; } }; },
+    function(view) { return { 
+      toString: function() { return '125'; }, 
+      valueOf: false }; }, // non-callable valueOf triggers invocation of toString
   ];
 
   for (var i = 0; i < bad_indices.length; ++i) {
