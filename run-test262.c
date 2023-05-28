@@ -1192,7 +1192,7 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
     async_done = 0; /* counter of "Test262:AsyncTestComplete" messages */
 
     res_val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
-
+    
     if (is_async && !JS_IsException(res_val)) {
         JS_FreeValue(ctx, res_val);
         for(;;) {
@@ -1345,6 +1345,9 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
     JS_FreeCString(ctx, error_name);
     JS_FreeValue(ctx, exception_val);
     JS_FreeValue(ctx, res_val);
+    #ifdef PRINTER
+        printf("exit eval_buf filename is %s\n",filename);
+    #endif
     return ret;
 }
 
@@ -1879,6 +1882,9 @@ static int slow_test_threshold;
 
 void run_test_dir_list(namelist_t *lp, int start_index, int stop_index)
 {
+    #ifdef PRINTER
+        printf("  1 enter run_test_dir_list lp->count %d\n",lp->count);
+    #endif
     int i;
 
     namelist_sort(lp);

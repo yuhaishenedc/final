@@ -16,6 +16,8 @@ flags: [async]
 features: [async-iteration]
 ---*/
 
+
+
 // The expected event log.
 var expected = [
   // Before entering loop.
