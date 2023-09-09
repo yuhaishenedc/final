@@ -38,6 +38,7 @@
 #include <malloc.h>
 #elif defined(__FreeBSD__)
 #include <malloc_np.h>
+#include <unistd.h>
 #endif
 
 #include "cutils.h"
@@ -86,7 +87,7 @@
   16: dump bytecode in hex
   32: dump line number table
  */
-//s#define DUMP_BYTECODE  (1)
+#define DUMP_BYTECODE  (4)
 /* dump the occurence of the automatic GC */
 //#define DUMP_GC
 /* dump objects freed by the garbage collector */
@@ -112,9 +113,9 @@
 #endif
 
 #define PREPARSER
-//#define PRINTER
+#define PRINTER
 //#define PRINTGC
-//#define PRINTCALL
+#define PRINTCALL
 //#define PRINTFREE
 //#define PRINTATOM
 //#define PRINTRESOLVEVARIABLES
@@ -122,10 +123,31 @@
 //#define PRINTSCOPE
 //#define TIMER
 //#define PRINTMODULE
-
+//#define MEMORY
+//#define PRINTWRITE
+//#define PRINTERPROPERTY
 
 #ifdef TIMER
-    struct timespec start_timer,end_timer;
+    //struct timespec start_timer,end_timer;
+    clock_t start,end;
+#endif
+
+#ifdef MEMORY
+void printMemory() {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+    char buf[30];
+    snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
+    FILE* pf = fopen(buf, "r");
+    if (pf) {
+        unsigned size, resident, shared;
+        if (fscanf(pf, "%u %u %*u %*u %u", &size, &resident, &shared) == 3) {
+            printf("Size: %f MB\n", (size / 1024.0));
+            printf("Resident: %f MB\n", (resident / 1024.0));
+            printf("Shared: %f MB\n", (shared / 1024.0));
+        }
+        fclose(pf);
+    }
+    printf("PID: %d\n", (unsigned)getpid());
+}
 #endif
 
 enum {
@@ -4620,7 +4642,7 @@ static int compact_properties(JSContext *ctx, JSObject *p)
 static int add_shape_property(JSContext *ctx, JSShape **psh,
                               JSObject *p, JSAtom atom, int prop_flags)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("          5 enter add_shape_property\n");
     #endif
     JSRuntime *rt = ctx->rt;
@@ -4661,7 +4683,7 @@ static int add_shape_property(JSContext *ctx, JSShape **psh,
     h = atom & hash_mask;
     pr->hash_next = prop_hash_end(sh)[-h - 1];
     prop_hash_end(sh)[-h - 1] = sh->prop_count;
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("          5 exit add_shape_property\n");
     #endif
     return 0;
@@ -4952,14 +4974,14 @@ static void js_function_set_properties(JSContext *ctx, JSValueConst func_obj,
                                        JSAtom name, int len)
 {
     /* ES6 feature non compatible with ES5.1: length is configurable */
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("      3 enter js_function_set_properties\n");
     #endif
     JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_length, JS_NewInt32(ctx, len),
                            JS_PROP_CONFIGURABLE);
     JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_name,
                            JS_AtomToString(ctx, name), JS_PROP_CONFIGURABLE);
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("      3 exit js_function_set_properties\n");
     #endif
 }
@@ -5254,7 +5276,7 @@ static force_inline JSShapeProperty *find_own_property(JSProperty **ppr,
                                                        JSObject *p,
                                                        JSAtom atom)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("            6 enter find_own_property\n");
     #endif
     JSShape *sh;
@@ -5277,7 +5299,7 @@ static force_inline JSShapeProperty *find_own_property(JSProperty **ppr,
         h = pr->hash_next;
     }
     *ppr = NULL;
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("            6 exit find_own_property\n");
     #endif
     return NULL;
@@ -7433,7 +7455,7 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
     tag = JS_VALUE_GET_TAG(obj);
 
     #ifdef PRINTER 
-        printf("        tag is %d\n",tag);
+        //printf("        tag is %d\n",tag);
         //-1: JS_TAG_OBJECT
         //-2: JS_TAG_FUNCTION_BYTECODE
         //2:  JS_TAG_NULL
@@ -9410,7 +9432,7 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                       JSAtom prop, JSValueConst val,
                       JSValueConst getter, JSValueConst setter, int flags)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("          5 enter JS_DefineProperty\n");
     #endif
     JSObject *p;
@@ -9680,7 +9702,7 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
                                      JSAtom prop, JSAutoInitIDEnum id,
                                      void *opaque, int flags)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("        4 enter JS_DefineAutoInitProperty\n");
     #endif
     JSObject *p;
@@ -9706,7 +9728,7 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
     assert(id <= 3);
     pr->u.init.realm_and_id |= id;
     pr->u.init.opaque = opaque;
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("        4 exit JS_DefineAutoInitProperty\n");
     #endif
     return TRUE;
@@ -9716,14 +9738,14 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
 int JS_DefinePropertyValue(JSContext *ctx, JSValueConst this_obj,
                            JSAtom prop, JSValue val, int flags)
 {   
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("        4 enter JS_DefinePropertyValue\n");
     #endif
     int ret;
     ret = JS_DefineProperty(ctx, this_obj, prop, val, JS_UNDEFINED, JS_UNDEFINED,
                             flags | JS_PROP_HAS_VALUE | JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_WRITABLE | JS_PROP_HAS_ENUMERABLE);
     JS_FreeValue(ctx, val);
-    #ifdef PRINTER
+    #ifdef PRINTERPROPERTY
         printf("        4 exit JS_DefinePropertyValue\n");
     #endif
     return ret;
@@ -23658,6 +23680,7 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     goto do_get_var;
                 }
             } else {
+                printf("                      no special situation\n");
                 if (s->token.u.ident.atom == JS_ATOM_arguments &&
                     !s->cur_func->arguments_allowed) {
                     js_parse_error(s, "'arguments' identifier is not allowed in class field initializer");
@@ -23818,9 +23841,8 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
             parse_func_call2:
 
                 #ifdef PRINTER
-					printf("                      in s->token.val = '(' && ");
-					printf("get_prev_opcode is %d\n",get_prev_opcode(fd));
-                    //OP_scope_get_var 	184
+					printf("                      in s->token.val = '('\n");
+                    //OP_scope_get_var 	182
 					//OP_get_field  	65
 					//OP_set_name  		77
 				#endif
@@ -23842,17 +23864,15 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     fd->byte_code.buf[fd->last_opcode_pos] = OP_get_array_el2;
                     drop_count = 2;
                     break;
-                case OP_scope_get_var:     //184
+                case OP_scope_get_var:     //182
                     {   
+                        printf("                      case OP_scope_get_var: %d\n",OP_scope_get_var);
                         JSAtom name;
                         //*todo: skip the with scope resolve
                         int scope;
                         name = get_u32(fd->byte_code.buf + fd->last_opcode_pos + 1);
                         scope = get_u16(fd->byte_code.buf + fd->last_opcode_pos + 5);
-                        if (name == JS_ATOM_eval && call_type == FUNC_CALL_NORMAL && !has_optional_chain) {
-                            /* direct 'eval' */
-                            opcode = OP_eval;
-                        } else {
+                        
                             /* verify if function name resolves to a simple
                                get_loc/get_arg: a function call inside a `with`
                                statement can resolve to a method call of the
@@ -23861,12 +23881,12 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                             /* XXX: always generate the OP_scope_get_ref
                                and remove it in variable resolution
                                pass ? */
-                            if (has_with_scope(fd, scope)) {
-                                opcode = OP_scope_get_ref;
-                                fd->byte_code.buf[fd->last_opcode_pos] = opcode;
+                        if (has_with_scope(fd, scope)) {
+                            opcode = OP_scope_get_ref;
+                            fd->byte_code.buf[fd->last_opcode_pos] = opcode;
                             }
                             
-                        }
+                        
                         drop_count = 1;
                     }
                     break;
@@ -25577,7 +25597,6 @@ static __exception int js_parse_statement_or_decl(JSParseState *s,
     label_name = JS_ATOM_NULL;
     if (is_label(s)) {
         BlockEnv *be;
-
         label_name = JS_DupAtom(ctx, s->token.u.ident.atom);
 
         for (be = s->cur_func->top_break; be; be = be->prev) {
@@ -28004,7 +28023,8 @@ static __exception int js_parse_source_element(JSParseState *s)
 	#endif
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&start_timer);
+        //clock_gettime(CLOCK_REALTIME,&start_timer);
+        //start=clock();
     #endif
 
     JSFunctionDef *fd = s->cur_func;
@@ -28035,10 +28055,12 @@ static __exception int js_parse_source_element(JSParseState *s)
 		printf("    2 exit js_parse_source_element && line number is %d\n",s->line_num);
 	#endif
 
+    /*
     #ifdef TIMER
         clock_gettime(CLOCK_REALTIME,&end_timer);
         printf("exit line number is %d && time cost is %ld\n",s->line_num,end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
+    */
 
     return 0;
 }
@@ -30331,12 +30353,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
                 dbuf_put_u16(&bc_out, call_argc);
                 dbuf_put_u16(&bc_out, s->scopes[scope].first + 1);
             }
-            break;
-        case OP_apply_eval: /* convert scope index to adjusted variable index */
-            scope = get_u16(bc_buf + pos + 1);
-            mark_eval_captured_variables(ctx, s, scope);
-            dbuf_putc(&bc_out, op);
-            dbuf_put_u16(&bc_out, s->scopes[scope].first + 1);
             break;
         case OP_scope_get_var_undef:
         case OP_scope_get_var:
@@ -33008,6 +33024,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
 	#ifdef PRINTER
 		printf("        4 enter js_parse_function_decl2 && line number is %d\n",function_line_num);
 		printf("        func_type is %d ",func_type);
+        //2 JS_PARSE_FUNC_EXPR
         dump_token(s,&s->token);
 	#endif
 
@@ -33156,7 +33173,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     //fd->strfilename=s->filename;
 
     //preparser
-    if(fd->total_scope_level>=3 && func_type!=6 && func_type!=4 && s->getset!=9577 ){
+    if(fd->total_scope_level>=2 && func_type!=6 && func_type!=4 && s->getset!=9577 ){
         fd->state=1;
     }
 
@@ -33614,6 +33631,7 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
 
     #ifdef PRINTER
         printf("      3 enter js_preparse_function_decl2\n");
+        printf("      fd->has_simple_parameter_list is %d\n",s->cur_func->has_simple_parameter_list);
     #endif
 
     JSFunctionDef *fd=s->cur_func;
@@ -33703,8 +33721,11 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
         return -1;
 
     //in strict_mode, check function and argument names 
+    /*
     if (js_parse_function_check_names(s, fd, fd->func_name))
         return -1;
+    */
+    //
 
     token_count=1;
     while(token_count>0){
@@ -34259,7 +34280,8 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
 	#endif
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&start_timer);
+        //clock_gettime(CLOCK_REALTIME,&start_timer);
+        start=clock();
     #endif
 
     JSParseState s1, *s = &s1;
@@ -34342,8 +34364,11 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     fd->body_scope = fd->scope_level;
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&end_timer);
-        printf("1 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
+        end = clock();
+        printf("1 time cost is %ld\n",end - start);
+        printMemory();
+        //clock_gettime(CLOCK_REALTIME,&end_timer);
+        //printf("1 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
     
     err = js_parse_program(s);
@@ -34356,16 +34381,22 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     }
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&end_timer);
-        printf("2 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
+        end = clock();
+        printf("2 time cost is %ld\n",end - start);
+        printMemory();
+        //clock_gettime(CLOCK_REALTIME,&end_timer);
+        //printf("2 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
     /* create the function object and all the enclosed functions */
     fun_obj = js_create_function(ctx, fd);
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&end_timer);
-        printf("3 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
+        end = clock();
+        printf("3 time cost is %ld\n",end - start);
+        printMemory();
+        //clock_gettime(CLOCK_REALTIME,&end_timer);
+        //printf("3 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
     if (JS_IsException(fun_obj))
@@ -34387,8 +34418,11 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     }
 
     #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&end_timer);
-        printf("4 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
+        end = clock();
+        printf("4 time cost is %ld\n",end - start);
+        printMemory();
+        //clock_gettime(CLOCK_REALTIME,&end_timer);
+        //printf("4 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
 	#ifdef PRINTER
@@ -34818,7 +34852,7 @@ static void bc_byte_swap(uint8_t *bc_buf, int bc_len)
 static int JS_WriteFunctionBytecode(BCWriterState *s,
                                     const uint8_t *bc_buf1, int bc_len)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("            6 enter JS_WriteFunctionBytecode\n");
         printf("            bc_len is %d\n",bc_len);
     #endif
@@ -34860,7 +34894,7 @@ static int JS_WriteFunctionBytecode(BCWriterState *s,
 
     js_free(s->ctx, bc_buf);
 
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("            6 exit JS_WriteFunctionBytecode\n");
     #endif
 
@@ -34886,7 +34920,7 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj);
 
 static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("          5 enter JS_WriteFunctionTag\n");
     #endif
 
@@ -34978,7 +35012,7 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
             goto fail;
     }
 
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("          5 exit JS_WriteFunctionTag\n");
     #endif
 
@@ -34989,7 +35023,7 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
 
 static int JS_WriteModule(BCWriterState *s, JSValueConst obj)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("          5 enter JS_WriteModule\n");
     #endif
 
@@ -35035,7 +35069,7 @@ static int JS_WriteModule(BCWriterState *s, JSValueConst obj)
     if (JS_WriteObjectRec(s, m->func_obj))
         goto fail;
 
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("          5 exit JS_WriteModule\n");
     #endif
 
@@ -35172,7 +35206,7 @@ static int JS_WriteSharedArrayBuffer(BCWriterState *s, JSValueConst obj)
 
 static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("        4 enter JS_WriteObjectRec\n");
     #endif
 
@@ -35301,7 +35335,7 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
         goto fail;
     }
 
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("        4 exit JS_WriteObjectRec\n");
     #endif
 
@@ -35355,7 +35389,7 @@ static int JS_WriteObjectAtoms(BCWriterState *s)
 uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
                          int flags, uint8_t ***psab_tab, size_t *psab_tab_len)
 {
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("      3 enter JS_WriteObject2\n");
     #endif
 
@@ -35403,7 +35437,7 @@ uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
     if (psab_tab_len)
         *psab_tab_len = 0;
 
-    #ifdef PRINTER
+    #ifdef PRINTERWRITE
         printf("      3 exit JS_WriteObject2\n");
     #endif
 
