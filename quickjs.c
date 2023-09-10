@@ -48,11 +48,8 @@
 
 #define OPTIMIZE         1
 #define SHORT_OPCODES    1
-#if defined(EMSCRIPTEN)
-#define DIRECT_DISPATCH  0
-#else
-#define DIRECT_DISPATCH  1
-#endif
+// here originally defined Emscripten,
+// but it seems we do not need this support
 
 #if defined(__APPLE__)
 #define MALLOC_OVERHEAD  0
@@ -87,7 +84,7 @@
   16: dump bytecode in hex
   32: dump line number table
  */
-#define DUMP_BYTECODE  (4)
+//#define DUMP_BYTECODE  (4)
 /* dump the occurence of the automatic GC */
 //#define DUMP_GC
 /* dump objects freed by the garbage collector */
@@ -113,9 +110,9 @@
 #endif
 
 #define PREPARSER
-#define PRINTER
+//#define PRINTER
 //#define PRINTGC
-#define PRINTCALL
+//#define PRINTCALL
 //#define PRINTFREE
 //#define PRINTATOM
 //#define PRINTRESOLVEVARIABLES
@@ -14466,12 +14463,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     JSVarRef **var_refs;
     size_t alloca_size;
 
-#if !DIRECT_DISPATCH
-#define SWITCH(pc)      switch (opcode = *pc++)
-#define CASE(op)        case op
-#define DEFAULT         default
-#define BREAK           break
-#else 
     static const void * const dispatch_table[256] = {
 #define DEF(id, size, n_pop, n_push, f) && case_OP_ ## id,
 #if SHORT_OPCODES
@@ -14486,7 +14477,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #define CASE(op)        case_ ## op
 #define DEFAULT         case_default
 #define BREAK           SWITCH(pc)
-#endif
     
     #ifdef PRINTER
         printf(" tag is %d &&",JS_VALUE_GET_TAG(func_obj));
@@ -14606,8 +14596,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         printf("here is error\n");
                         goto not_a_function;
                     }
-
-                    JSFunctionBytecode* print_b=reparse_parent_p->u.func.function_bytecode;
                     
                     int exit_flag=0;
                     
@@ -14947,9 +14935,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 goto exception;
 
             #ifdef PRINTER  
-                JSValue print_tmp=sp[-1];
                 //*sp sp[0] dont work，这里后面看一下
-                JSObject *print_p=JS_VALUE_GET_OBJ(print_tmp);
                 printf("        after process op_fclosure8\n");
                 printf("\n");
             #endif
@@ -15490,63 +15476,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_eval):
             {
-                JSValueConst obj;
-                int scope_idx;
-                call_argc = get_u16(pc);
-                scope_idx = get_u16(pc + 2) - 1;
-                pc += 4;
-                call_argv = sp - call_argc;
-                sf->cur_pc = pc;
-                if (js_same_value(ctx, call_argv[-1], ctx->eval_obj)) {
-                    if (call_argc >= 1)
-                        obj = call_argv[0];
-                    else
-                        obj = JS_UNDEFINED;
-                    ret_val = JS_EvalObject(ctx, JS_UNDEFINED, obj,
-                                            JS_EVAL_TYPE_DIRECT, scope_idx);
-                } else {
-                    ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED,
-                                              JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
-                }
-                if (unlikely(JS_IsException(ret_val)))
-                    goto exception;
-                for(i = -1; i < call_argc; i++)
-                    JS_FreeValue(ctx, call_argv[i]);
-                sp -= call_argc + 1;
-                *sp++ = ret_val;
             }
             BREAK;
             /* could merge with OP_apply */
         CASE(OP_apply_eval):
             {
-                int scope_idx;
-                uint32_t len;
-                JSValue *tab;
-                JSValueConst obj;
-
-                scope_idx = get_u16(pc) - 1;
-                pc += 2;
-                tab = build_arg_list(ctx, &len, sp[-1]);
-                if (!tab)
-                    goto exception;
-                if (js_same_value(ctx, sp[-2], ctx->eval_obj)) {
-                    if (len >= 1)
-                        obj = tab[0];
-                    else
-                        obj = JS_UNDEFINED;
-                    ret_val = JS_EvalObject(ctx, JS_UNDEFINED, obj,
-                                            JS_EVAL_TYPE_DIRECT, scope_idx);
-                } else {
-                    ret_val = JS_Call(ctx, sp[-2], JS_UNDEFINED, len,
-                                      (JSValueConst *)tab);
-                }
-                free_arg_list(ctx, tab, len);
-                if (unlikely(JS_IsException(ret_val)))
-                    goto exception;
-                JS_FreeValue(ctx, sp[-2]);
-                JS_FreeValue(ctx, sp[-1]);
-                sp -= 2;
-                *sp++ = ret_val;
             }
             BREAK;
 
@@ -23680,7 +23614,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     goto do_get_var;
                 }
             } else {
-                printf("                      no special situation\n");
                 if (s->token.u.ident.atom == JS_ATOM_arguments &&
                     !s->cur_func->arguments_allowed) {
                     js_parse_error(s, "'arguments' identifier is not allowed in class field initializer");
@@ -23866,11 +23799,8 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     break;
                 case OP_scope_get_var:     //182
                     {   
-                        printf("                      case OP_scope_get_var: %d\n",OP_scope_get_var);
-                        JSAtom name;
                         //*todo: skip the with scope resolve
                         int scope;
-                        name = get_u32(fd->byte_code.buf + fd->last_opcode_pos + 1);
                         scope = get_u16(fd->byte_code.buf + fd->last_opcode_pos + 5);
                         
                             /* verify if function name resolves to a simple
@@ -24027,11 +23957,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     emit_op(s, OP_apply);
                     emit_u16(s, call_type == FUNC_CALL_NEW);
                     break;
-                case OP_eval:
-                    emit_op(s, OP_apply_eval);
-                    emit_u16(s, fd->scope_level);
-                    fd->has_eval_call = TRUE;
-                    break;
                 default:
                     if (call_type == FUNC_CALL_SUPER_CTOR) {
                         emit_op(s, OP_apply);
@@ -24071,12 +23996,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                 case OP_scope_get_ref:
                     emit_op(s, OP_call_method);
                     emit_u16(s, arg_count);
-                    break;
-                case OP_eval:
-                    emit_op(s, OP_eval);
-                    emit_u16(s, arg_count);
-                    emit_u16(s, fd->scope_level);
-                    fd->has_eval_call = TRUE;
                     break;
                 default:
 					// call_type 0
@@ -30343,17 +30262,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
             line_num = get_u32(bc_buf + pos + 1);
             s->line_number_size++;
             goto no_change;
-
-        case OP_eval: /* convert scope index to adjusted variable index */
-            {
-                int call_argc = get_u16(bc_buf + pos + 1);
-                scope = get_u16(bc_buf + pos + 1 + 2);
-                mark_eval_captured_variables(ctx, s, scope);
-                dbuf_putc(&bc_out, op);
-                dbuf_put_u16(&bc_out, call_argc);
-                dbuf_put_u16(&bc_out, s->scopes[scope].first + 1);
-            }
-            break;
         case OP_scope_get_var_undef:
         case OP_scope_get_var:
         case OP_scope_put_var:
@@ -32052,7 +31960,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
 
     s->token.val=fd->token.val;
     s->token.line_num=fd->token.line_num;
-    s->token.ptr=fd->token.ptr;
+    s->token.ptr=(const uint8_t *)fd->token.ptr;
 
     s->got_lf=fd->reparse_pos.got_lf;
     s->buf_ptr=fd->reparse_pos.ptr;
