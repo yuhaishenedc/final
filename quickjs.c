@@ -29586,7 +29586,7 @@ static int resolve_scope_private_field(JSContext *ctx, JSFunctionDef *s,
     }
     return 0;
 }
-
+/*
 static void mark_eval_captured_variables(JSContext *ctx, JSFunctionDef *s,
                                          int scope_level)
 {
@@ -29599,6 +29599,7 @@ static void mark_eval_captured_variables(JSContext *ctx, JSFunctionDef *s,
         idx = vd->scope_next;
     }
 }
+*/
 
 /* XXX: should handle the argument scope generically */
 static BOOL is_var_in_arg_scope(const JSVarDef *vd)
@@ -31963,8 +31964,8 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     s->token.ptr=(const uint8_t *)fd->token.ptr;
 
     s->got_lf=fd->reparse_pos.got_lf;
-    s->buf_ptr=fd->reparse_pos.ptr;
-    s->last_ptr=fd->reparse_pos.last_ptr;
+    s->buf_ptr=(const uint8_t *)fd->reparse_pos.ptr;
+    s->last_ptr=(const uint8_t *)fd->reparse_pos.last_ptr;
     s->buf_end=fd->reparse_pos.buf_end;
 
     s->cur_func=fd;
@@ -33668,7 +33669,7 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
     fd->reparse_pos.ptr=fd->source+start_len;
     fd->token.ptr=fd->source+token_len;
     //fd->reparse_pos.last_ptr=ptr;
-    fd->reparse_pos.buf_end=fd->source+fd->source_len;
+    fd->reparse_pos.buf_end=(const uint8_t *)(fd->source+fd->source_len);
 
 
     #ifdef PRINTER
