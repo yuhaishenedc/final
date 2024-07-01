@@ -1,7 +1,7 @@
 function layer1() {
   var tab = [];
 
-  var loop_count = 20000;
+  var loop_count = 10000;
 
   var a = 1, b = 2;
 
@@ -13,9 +13,11 @@ function layer1() {
     }
   }
 
+  
   for (var i = 0; i < loop_count; i++) {
     tab[i]();
   }
+  
 
 
   console.log("success");

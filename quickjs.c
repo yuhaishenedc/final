@@ -87,7 +87,7 @@
 //#define DUMP_BYTECODE  (4)
 /* dump the occurence of the automatic GC */
 //#define DUMP_GC
-/* dump objects freed by the garbage collector */
+/* dump objects freed by the garbage collector */                                                                                                                                                                                                                                                                  
 //#define DUMP_GC_FREE
 /* dump objects leaking when freeing the runtime */
 //#define DUMP_LEAKS  1
@@ -118,7 +118,7 @@
 //#define PRINTRESOLVEVARIABLES
 //#define PRINTRESOLVELABELS
 //#define PRINTSCOPE
-//#define TIMER
+#define TIMER
 //#define PRINTMODULE
 //#define MEMORY
 //#define PRINTWRITE
@@ -14572,10 +14572,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         if(b->closure_var_count){
 
             reparse_var_refs=js_mallocz(caller_ctx,sizeof(reparse_var_refs[0])*b->closure_var_count);
-            
-            //if(!var_refs)
-            //    goto fail;
-
             p->u.func.var_refs=reparse_var_refs;
 
             for(i = 0; i < b->closure_var_count; i++) {
@@ -14586,42 +14582,28 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 #ifdef PRINTER
                     printf("      i is %d && cv->is_local is %d && cv->is_arg is %d && cv->var_idx is %d\n",i,cv->is_local,cv->is_arg,cv->var_idx);
                 #endif
+
+                JSObject *reparse_parent_p=p->create_closure_parent;
+                JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
+
+                int exit_flag=0;
+
+
                 
                 if(cv->is_local){
                     
-                    JSObject *reparse_parent_p=p->create_closure_parent;
-                    JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
-
+                    
                     if(reparse_parent_p->pos1!=-100){
                         printf("here is error\n");
                         goto not_a_function;
                     }
                     
-                    int exit_flag=0;
-                    
-                    //如果当前栈还没退出
-                    //此时在还存在的栈中找到这个变量，并且设定exit_flag为1
-                    if(reparse_parent_p->exit_arg_buf==NULL&&reparse_parent_p->exit_var_buf==NULL){
-                        struct list_head *el;
-                        list_for_each(el, &parent_sf->var_ref_list) {
-                            var_ref = list_entry(el, JSVarRef, header.link);
-                            if(var_ref->var_idx==cv->var_idx && var_ref->is_arg==cv->is_arg){
-                                #ifdef PRINTER
-                                    printf("      find in the parent stakframe\n");
-                                #endif
-                                var_ref->header.ref_count++;
-                                exit_flag=1;
-                                break;
-                            }
-                        }
-                    }
 
                     #ifdef PRINTER
                         printf("      exit_flag is %d\n",exit_flag);
                     #endif
 
                     //此时islocal的栈桢已经退出了 
-                    //下面的代码存在逻辑问题，回来debug一下
                     if(!exit_flag){
 
                         var_ref=js_malloc(caller_ctx,sizeof(JSVarRef));
@@ -14630,49 +14612,26 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         var_ref->is_arg = cv->is_arg;
                         var_ref->var_idx = cv->var_idx;
 
-                        if(cv->is_arg){
-                            if(reparse_parent_p->exit_arg_buf){
-                                var_ref->pvalue=&reparse_parent_p->exit_arg_buf[cv->var_idx];
-                            }else{
-                                var_ref->pvalue=&parent_sf->arg_buf[cv->var_idx];
-                            }
-                        }else{
-                            if(reparse_parent_p->exit_var_buf){
-                                #ifdef PRINTER
-                                    printf("      must enter here\n");
-                                #endif
-                                var_ref->pvalue=&reparse_parent_p->exit_var_buf[cv->var_idx];
-                            }else{
-                                #ifdef PRINTER
-                                    printf("      never enter here\n");
-                                #endif
-                                var_ref->pvalue=&parent_sf->var_buf[cv->var_idx];
-                            }
-                        }
+                        if(cv->is_arg && reparse_parent_p->exit_arg_buf)
+                            var_ref->pvalue= &reparse_parent_p->exit_arg_buf[cv->var_idx];
+                        else if (!cv->is_arg && reparse_parent_p->exit_var_buf)
+                            var_ref->pvalue= &reparse_parent_p->exit_var_buf[cv->var_idx];
+                        else 
+                            var_ref->pvalue=cv->is_arg ? &parent_sf->arg_buf[cv->var_idx] : &parent_sf->var_buf[cv->var_idx];
 
                         var_ref->value = JS_UNDEFINED;
 
-                        if(reparse_parent_p->exit_arg_buf==NULL&&reparse_parent_p->exit_var_buf==NULL){
-                            #ifdef PRINTER
-                                printf("      never enter here 2\n");
-                            #endif
-                            list_add_tail(&var_ref->header.link,&parent_sf->var_ref_list);
+                        if(reparse_parent_p->exit_arg_buf==NULL && reparse_parent_p->exit_var_buf==NULL){
+                            list_add_tail(&var_ref->header.link, &parent_sf->var_ref_list);
                         }else{
-                            #ifdef PRINTER
-                                printf("      must enter here 2\n");
-                                if(reparse_parent_p->exit_var_buf==NULL){
-                                    printf("exit is null\n");
-                                }
-                                printf("      tag is %d\n",JS_VALUE_GET_TAG(reparse_parent_p->exit_arg_buf[cv->var_idx]));
-                            #endif
-                            if(var_ref->is_arg){
-                                var_ref->value=JS_DupValueRT(rt,reparse_parent_p->exit_arg_buf[var_ref->var_idx]);
-                            }else{
-                                var_ref->value=JS_DupValueRT(rt,reparse_parent_p->exit_var_buf[var_ref->var_idx]);
-                            }
-                            var_ref->pvalue=&var_ref->value;
-                            var_ref->is_detached=TRUE;
-                            add_gc_object(rt,&var_ref->header,JS_GC_OBJ_TYPE_VAR_REF);
+                            if(var_ref->is_arg)
+                                var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_arg_buf[var_ref->var_idx]);    
+                            else 
+                                var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_var_buf[var_ref->var_idx]);
+
+                            var_ref->pvalue = &var_ref->value;
+                            var_ref->is_detached = TRUE;
+                            add_gc_object(rt, &var_ref->header, JS_GC_OBJ_TYPE_VAR_REF);
                         }
                     }
 
@@ -14682,7 +14641,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         if(JS_VALUE_GET_TAG(*(var_ref->pvalue))==JS_TAG_INT){
                             printf("      it is int && value is %d\n",JS_VALUE_GET_INT(*(var_ref->pvalue)));
                         }
-                        
                         //if(JS_VALUE_GET_TAG(*(var_ref->pvalue))==JS_TAG_OBJECT){
                         //    JS_DumpObject(caller_ctx->rt,JS_VALUE_GET_PTR(*(var_ref->pvalue)));
                         //}
@@ -14705,9 +14663,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     JSFunctionDef *parent_fd=b_parent->full_fd;
                     //JSStackFrame *parent_sf=(JSStackFrame *)(b_parent->sf);
                     //JSObject *reparse_parent_p=(JSObject *)(b_parent->parent_p);
-
-                    JSObject *reparse_parent_p=p->create_closure_parent;
-                    JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
                     
                     while(b_parent!=NULL){
                         #ifdef PRINTER
@@ -14723,7 +14678,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                 reparse_parent_p=reparse_parent_p->create_closure_parent;
                                 parent_sf=reparse_parent_p->execution_sf;
 
-                                int exit_flag=0;
+                                exit_flag=0;
 
                                 if(reparse_parent_p->exit_arg_buf==NULL&&reparse_parent_p->exit_var_buf==NULL){
                                     struct list_head *el;
@@ -34275,7 +34230,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("1 time cost is %ld\n",end - start);
-        printMemory();
+        //printMemory();
         //clock_gettime(CLOCK_REALTIME,&end_timer);
         //printf("1 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
@@ -34292,7 +34247,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("2 time cost is %ld\n",end - start);
-        printMemory();
+        //printMemory();
         //clock_gettime(CLOCK_REALTIME,&end_timer);
         //printf("2 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
@@ -34303,7 +34258,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("3 time cost is %ld\n",end - start);
-        printMemory();
+        //printMemory();
         //clock_gettime(CLOCK_REALTIME,&end_timer);
         //printf("3 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
@@ -34329,7 +34284,7 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("4 time cost is %ld\n",end - start);
-        printMemory();
+        //printMemory();
         //clock_gettime(CLOCK_REALTIME,&end_timer);
         //printf("4 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif

@@ -271,7 +271,7 @@ def(    leave_scope, 3, 0, 0, u16)  /* emitted in phase 1, removed in phase 2 */
 def(          label, 5, 0, 0, label) /* emitted in phase 1, removed in phase 3 */       //182
 
 def(scope_get_var_undef, 7, 0, 1, atom_u16) /* emitted in phase 1, removed in phase 2 */
-def(  scope_get_var, 7, 0, 1, atom_u16) /* emitted in phase 1, removed in phase 2 */        //184
+def(  scope_get_var, 7, 0, 1, atom_u16) /* emitted in phase 1, removed in phase 2 */        //182 这个182是输出看的，不知道为什么不是184
 def(  scope_put_var, 7, 1, 0, atom_u16) /* emitted in phase 1, removed in phase 2 */        //185
 def(scope_delete_var, 7, 0, 1, atom_u16) /* emitted in phase 1, removed in phase 2 */       //186
 def( scope_make_ref, 11, 0, 2, atom_label_u16) /* emitted in phase 1, removed in phase 2 */ //187
