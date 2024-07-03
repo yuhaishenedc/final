@@ -111,33 +111,10 @@
 
 #define PREPARSER
 //#define PRINTER
-//#define PRINTCALL
 #define TIMER
-//#define PRINTMODULE
-//#define MEMORY
-//#define PRINTWRITE
-//#define PRINTERPROPERTY
 
 #ifdef TIMER
     clock_t start,end;
-#endif
-
-#ifdef MEMORY
-void printMemory() {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-    char buf[30];
-    snprintf(buf, 30, "/proc/%u/statm", (unsigned)getpid());
-    FILE* pf = fopen(buf, "r");
-    if (pf) {
-        unsigned size, resident, shared;
-        if (fscanf(pf, "%u %u %*u %*u %u", &size, &resident, &shared) == 3) {
-            printf("Size: %f MB\n", (size / 1024.0));
-            printf("Resident: %f MB\n", (resident / 1024.0));
-            printf("Shared: %f MB\n", (shared / 1024.0));
-        }
-        fclose(pf);
-    }
-    printf("PID: %d\n", (unsigned)getpid());
-}
 #endif
 
 enum {
@@ -4533,9 +4510,6 @@ static int compact_properties(JSContext *ctx, JSObject *p)
 static int add_shape_property(JSContext *ctx, JSShape **psh,
                               JSObject *p, JSAtom atom, int prop_flags)
 {
-    #ifdef PRINTERPROPERTY
-        printf("          5 enter add_shape_property\n");
-    #endif
     JSRuntime *rt = ctx->rt;
     JSShape *sh = *psh;
     JSShapeProperty *pr, *prop;
@@ -4574,9 +4548,6 @@ static int add_shape_property(JSContext *ctx, JSShape **psh,
     h = atom & hash_mask;
     pr->hash_next = prop_hash_end(sh)[-h - 1];
     prop_hash_end(sh)[-h - 1] = sh->prop_count;
-    #ifdef PRINTERPROPERTY
-        printf("          5 exit add_shape_property\n");
-    #endif
     return 0;
 }
 
@@ -4865,16 +4836,10 @@ static void js_function_set_properties(JSContext *ctx, JSValueConst func_obj,
                                        JSAtom name, int len)
 {
     /* ES6 feature non compatible with ES5.1: length is configurable */
-    #ifdef PRINTERPROPERTY
-        printf("      3 enter js_function_set_properties\n");
-    #endif
     JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_length, JS_NewInt32(ctx, len),
                            JS_PROP_CONFIGURABLE);
     JS_DefinePropertyValue(ctx, func_obj, JS_ATOM_name,
                            JS_AtomToString(ctx, name), JS_PROP_CONFIGURABLE);
-    #ifdef PRINTERPROPERTY
-        printf("      3 exit js_function_set_properties\n");
-    #endif
 }
 
 static BOOL js_class_has_bytecode(JSClassID class_id)
@@ -5153,9 +5118,6 @@ static force_inline JSShapeProperty *find_own_property(JSProperty **ppr,
                                                        JSObject *p,
                                                        JSAtom atom)
 {
-    #ifdef PRINTERPROPERTY
-        printf("            6 enter find_own_property\n");
-    #endif
     JSShape *sh;
     JSShapeProperty *pr, *prop;
     intptr_t h;
@@ -5176,9 +5138,6 @@ static force_inline JSShapeProperty *find_own_property(JSProperty **ppr,
         h = pr->hash_next;
     }
     *ppr = NULL;
-    #ifdef PRINTERPROPERTY
-        printf("            6 exit find_own_property\n");
-    #endif
     return NULL;
 }
 
@@ -7043,13 +7002,6 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
 
     tag = JS_VALUE_GET_TAG(obj);
 
-    #ifdef PRINTER 
-        //printf("        tag is %d\n",tag);
-        //-1: JS_TAG_OBJECT
-        //-2: JS_TAG_FUNCTION_BYTECODE
-        //2:  JS_TAG_NULL
-    #endif
-
     if (unlikely(tag != JS_TAG_OBJECT)) {
         switch(tag) {
         case JS_TAG_NULL:
@@ -7094,13 +7046,6 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
     for(;;) {
         prs = find_own_property(&pr, p, prop);
         if (prs) {
-            //#ifdef PRINTER
-                //printf("        prs is not null && prs->flags & JS_PROP_TMASK is %d\n",prs->flags&JS_PROP_TMASK);
-                //48 JS_PROP_AUTOINIT
-                //32 JS_PROP_VARREF
-                //16 JS_PROP_GETSET
-            //#endif
-            /* found */
             if (unlikely(prs->flags & JS_PROP_TMASK)) {
                 if ((prs->flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
                     if (unlikely(!pr->u.getset.getter)) {
@@ -7125,16 +7070,8 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
             } else {
                 return JS_DupValue(ctx, pr->u.value);
             }
-        }else{
-            //#ifdef PRINTER
-                //printf("        prs is null\n");
-            //#endif
         }
         if (unlikely(p->is_exotic)) {
-            //#ifdef PRINTER
-                //printf("        p->is_exotic\n");
-            //#endif
-            
             /* exotic behaviors */
             if (p->fast_array) {
                 if (__JS_AtomIsTaggedInt(prop)) {
@@ -7833,13 +7770,6 @@ JSAtom JS_ValueToAtom(JSContext *ctx, JSValueConst val)
 static JSValue JS_GetPropertyValue(JSContext *ctx, JSValueConst this_obj,
                                    JSValue prop)
 {
-    //#ifdef PRINTER
-        //printf("        4 enter JS_GetPropertyValue\n"); 
-        //printf("        the tag of object is %d && the tag of prop is %d\n",JS_VALUE_GET_TAG(this_obj),JS_VALUE_GET_TAG(prop));
-        //-1: JS_TAG_OBJECT
-        //-7: JS_TAG_STRING
-        //0:  JS_TAG_INT
-    //#endif
     JSAtom atom;
     JSValue ret;
 
@@ -7852,10 +7782,6 @@ static JSValue JS_GetPropertyValue(JSContext *ctx, JSValueConst this_obj,
         p = JS_VALUE_GET_OBJ(this_obj);
         idx = JS_VALUE_GET_INT(prop);
         len = (uint32_t)p->u.array.count;
-        //#ifdef PRINTER
-            //printf("        idx is %d && len is %d\n",idx,len);
-            //printf("        p->class_id is %d\n",p->class_id);
-        //#endif
         if (unlikely(idx >= len))
             goto slow_path;
         switch(p->class_id) {
@@ -7970,9 +7896,6 @@ JSValue JS_GetPropertyStr(JSContext *ctx, JSValueConst this_obj,
 static JSProperty *add_property(JSContext *ctx,
                                 JSObject *p, JSAtom prop, int prop_flags)
 {
-    //#ifdef PRINTER
-        //printf("          5 enter add_property\n");
-    //#endif
     JSShape *sh, *new_sh;
 
     sh = p->shape;
@@ -8955,18 +8878,10 @@ static BOOL check_define_prop_flags(int prop_flags, int flags)
 static int js_shape_prepare_update(JSContext *ctx, JSObject *p,
                                    JSShapeProperty **pprs)
 {
-    //#ifdef PRINTER
-        //printf("            6 enter js_shape_preparse_update\n");
-    //#endif
     JSShape *sh;
     uint32_t idx = 0;    /* prevent warning */
 
     sh = p->shape;
-    //#ifdef PRINTER
-        //printf("            sh->is_hashed is %d && sh->header.ref_count is %d\n",sh->is_hashed,sh->header.ref_count);
-    //#endif
-
-    //*todo: here create the new property and delete the old ones
     if (sh->is_hashed) {
         if (sh->header.ref_count != 1) {
             if (pprs)
@@ -8984,9 +8899,6 @@ static int js_shape_prepare_update(JSContext *ctx, JSObject *p,
             sh->is_hashed = FALSE;
         }
     }
-    //#ifdef PRINTER
-        //printf("            6 exit js_shape_perparse_update\n");
-    //#endif
     return 0;
 }
 
@@ -9015,9 +8927,6 @@ int JS_DefineProperty(JSContext *ctx, JSValueConst this_obj,
                       JSAtom prop, JSValueConst val,
                       JSValueConst getter, JSValueConst setter, int flags)
 {
-    #ifdef PRINTERPROPERTY
-        printf("          5 enter JS_DefineProperty\n");
-    #endif
     JSObject *p;
     JSShapeProperty *prs;
     JSProperty *pr;
@@ -9285,9 +9194,6 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
                                      JSAtom prop, JSAutoInitIDEnum id,
                                      void *opaque, int flags)
 {
-    #ifdef PRINTERPROPERTY
-        printf("        4 enter JS_DefineAutoInitProperty\n");
-    #endif
     JSObject *p;
     JSProperty *pr;
 
@@ -9311,9 +9217,6 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
     assert(id <= 3);
     pr->u.init.realm_and_id |= id;
     pr->u.init.opaque = opaque;
-    #ifdef PRINTERPROPERTY
-        printf("        4 exit JS_DefineAutoInitProperty\n");
-    #endif
     return TRUE;
 }
 
@@ -9321,16 +9224,10 @@ static int JS_DefineAutoInitProperty(JSContext *ctx, JSValueConst this_obj,
 int JS_DefinePropertyValue(JSContext *ctx, JSValueConst this_obj,
                            JSAtom prop, JSValue val, int flags)
 {   
-    #ifdef PRINTERPROPERTY
-        printf("        4 enter JS_DefinePropertyValue\n");
-    #endif
     int ret;
     ret = JS_DefineProperty(ctx, this_obj, prop, val, JS_UNDEFINED, JS_UNDEFINED,
                             flags | JS_PROP_HAS_VALUE | JS_PROP_HAS_CONFIGURABLE | JS_PROP_HAS_WRITABLE | JS_PROP_HAS_ENUMERABLE);
     JS_FreeValue(ctx, val);
-    #ifdef PRINTERPROPERTY
-        printf("        4 exit JS_DefinePropertyValue\n");
-    #endif
     return ret;
 }
 
@@ -11145,10 +11042,6 @@ static JSValue js_dtoa(JSContext *ctx,
 
 JSValue JS_ToStringInternal(JSContext *ctx, JSValueConst val, BOOL is_ToPropertyKey)
 {
-    //#ifdef PRINTER
-        //printf("            6 enter JS_ToStringInternal (a multiple return case)\n");
-        //printf("            the tag is %d\n",JS_VALUE_GET_NORM_TAG(val));
-    //#endif
     uint32_t tag;
     const char *str;
     char buf[32];
@@ -13612,15 +13505,6 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
         printf("    b->closure_var_count is %d\n",b->closure_var_count);
     #endif
 
-/*
-static const uint16_t func_kind_to_class_id[] = {
-    [JS_FUNC_NORMAL] = JS_CLASS_BYTECODE_FUNCTION,
-    [JS_FUNC_GENERATOR] = JS_CLASS_GENERATOR_FUNCTION,
-    [JS_FUNC_ASYNC] = JS_CLASS_ASYNC_FUNCTION,
-    [JS_FUNC_ASYNC_GENERATOR] = JS_CLASS_ASYNC_GENERATOR_FUNCTION,
-};
-*/
-
     func_obj = JS_NewObjectClass(ctx, func_kind_to_class_id[b->func_kind]);
 
     if (JS_IsException(func_obj)) {
@@ -14351,11 +14235,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         }
     }
 
-    #ifdef PRINTER
-        //printf("before execution \n");
-        //JS_DumpObject(caller_ctx->rt,p);
-    #endif
-
     if (unlikely(argc < b->arg_count || (flags & JS_CALL_FLAG_COPY_ARGV))) {
         arg_allocated_size = b->arg_count;
     } else {
@@ -14444,15 +14323,9 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_push_5):
         CASE(OP_push_6):
         CASE(OP_push_7):
-            #ifdef PRINTCALL
-                printf("        case OP_push_%d && sp is %p\n",opcode-OP_push_0,sp);
-            #endif
             *sp++ = JS_NewInt32(ctx, opcode - OP_push_0);
             BREAK;
         CASE(OP_push_i8):
-            #ifdef PRINTCALL
-                printf("        case OP_pushi8\n");
-            #endif
             *sp++ = JS_NewInt32(ctx, get_i8(pc));
             pc += 1;
             BREAK;
@@ -14464,12 +14337,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_DupValue(ctx, b->cpool[*pc++]);
             BREAK;
         CASE(OP_fclosure8):
-
-            #ifdef PRINTCALL
-                printf("        case OP_fclosure8 &&  b->closure_var_count is %d\n",b->closure_var_count);
-                printf("        caller filename is %s && line number is %d\n",b->strfilename,b->line_num);
-            #endif
-
             //note the JS_DupValue here, make ref_count of JSFunctionBytecode plus 1
             *sp++ = js_closure(ctx, JS_DupValue(ctx, b->cpool[*pc++]), var_refs, sf);
             if (unlikely(JS_IsException(sp[-1])))
@@ -14487,9 +14354,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_get_length):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_get_length\n");
-                #endif
                 JSValue val;
 
                 val = JS_GetProperty(ctx, sp[-1], JS_ATOM_length);
@@ -14501,10 +14365,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
 #endif
         CASE(OP_push_atom_value):
-            #ifdef PRINTCALL
-                printf("        case OP_push_atom_value\n");
-            #endif
-
             *sp++ = JS_AtomToValue(ctx, get_u32(pc));
             pc += 4;
             BREAK;
@@ -14540,29 +14400,16 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_FALSE;
             BREAK;
         CASE(OP_push_true):
-
-            #ifdef PRINTCALL
-                printf("        case OP_push_true\n");
-            #endif
             *sp++ = JS_TRUE;
             BREAK;
         CASE(OP_object):
-            #ifdef PRINTCALL
-                printf("\n        case OP_object && function line number is %d\n",b->line_num);
-            #endif
             *sp++ = JS_NewObject(ctx);
             if (unlikely(JS_IsException(sp[-1])))
                 goto exception;
             BREAK;
         CASE(OP_special_object):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_special_object\n");
-                #endif
                 int arg = *pc++;
-                #ifdef PRINTCALL
-                    printf("        arg is %d\n",arg);
-                #endif
                 switch(arg) {
                 case OP_SPECIAL_OBJECT_ARGUMENTS:
                     *sp++ = js_build_arguments(ctx, argc, (JSValueConst *)argv);
@@ -14617,9 +14464,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
 
         CASE(OP_drop):
-            #ifdef PRINTCALL
-                printf("\n        case OP_drop\n");
-            #endif
             JS_FreeValue(ctx, sp[-1]);
             sp--;
             BREAK;
@@ -14635,9 +14479,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             sp--;
             BREAK;
         CASE(OP_dup):
-            #ifdef PRINTCALL
-                printf("\n        case OP_dup && sp is %p\n",sp);
-            #endif
             sp[0] = JS_DupValue(ctx, sp[-1]);
             sp++;
             BREAK;
@@ -14658,9 +14499,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             sp++;
             BREAK;
         CASE(OP_insert2): /* obj a -> a obj a (dup_x1) */
-            #ifdef PRINTCALL
-                printf("        case OP_insert2\n");
-            #endif
             sp[0] = sp[-1];
             sp[-1] = sp[-2];
             sp[-2] = JS_DupValue(ctx, sp[0]);
@@ -14781,18 +14619,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_call1):
         CASE(OP_call2):
         CASE(OP_call3):
-            #ifdef PRINTCALL
-                printf("\n        case OP_call%d && call function line number is %d && call filename is %s\n",opcode-OP_call0,b->line_num,b->strfilename);
-            #endif
             call_argc = opcode - OP_call0;
             goto has_call_argc;
 #endif
         CASE(OP_call):
         CASE(OP_tail_call):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_tail_call(or OP_call) && call function line number is %d\n",b->line_num);
-                #endif
                 call_argc = get_u16(pc);
                 pc += 2;
                 goto has_call_argc;
@@ -14804,32 +14636,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
                 ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED,
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
-
-                #ifdef PRINTCALL
-                    printf("      after execution return to function line number %d && filename is %s\n",b->line_num,b->strfilename);
-                #endif
                 
                 if (unlikely(JS_IsException(ret_val)))
                     goto exception;
                 if (opcode == OP_tail_call)
                     goto done;
                 for(i = -1; i < call_argc; i++){
-                    #ifdef PRINTCALL
-                        printf("      in JS_CallInternal OP_callx has_call_argc && i is %d\n",i);
-                    #endif
-                    #ifdef PRINTCALL
-                    if(JS_VALUE_GET_TAG(call_argv[i])==JS_TAG_OBJECT){
-                        JSObject * call_tmp=JS_VALUE_GET_OBJ(call_argv[i]);
-                        //JS_DumpObject(rt,call_tmp);
-                        printf("      p->class_id is %d && ref_count is %d\n",call_tmp->class_id,call_tmp->header.ref_count);
-                        //26 JS_CLASS_INT32_ARRAY
-                        //13 JS_CLASS_BYTECODE_FUNCTION
-                        //1  JS_CLASS_OBJECT
-                        if(call_tmp->class_id==JS_CLASS_BYTECODE_FUNCTION){
-                            printf("      function line number is %d && bytecode length is %d\n",call_tmp->u.func.function_bytecode->line_num,call_tmp->u.func.function_bytecode->byte_code_len);
-                        }
-                    }
-                    #endif
                     JS_FreeValue(ctx, call_argv[i]);  
                 }
                 sp -= call_argc + 1;
@@ -14838,9 +14650,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_call_constructor):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_call_constructor\n");
-                #endif
                 call_argc = get_u16(pc);
                 pc += 2;
                 call_argv = sp - call_argc;
@@ -14863,31 +14672,13 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 pc += 2;
                 call_argv = sp - call_argc;
                 sf->cur_pc = pc;
-                #ifdef PRINTCALL
-                    printf("        case OP_call_method || OP_tail_call_method && call_argc is %d && sp is %p\n",call_argc,sp);
-                    printf("        caller line number is %d && filename is %s\n",b->line_num,b->strfilename);
-                #endif
                 ret_val = JS_CallInternal(ctx, call_argv[-1], call_argv[-2],
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
-                #ifdef PRINTCALL
-                    printf("      return to function line number %d\n",b->debug.line_num);
-                #endif
                 if (unlikely(JS_IsException(ret_val)))
                     goto exception;
                 if (opcode == OP_tail_call_method)
                     goto done;
                 for(i = -2; i < call_argc; i++){
-                    #ifdef PRINTCALL
-                        printf("      in JS_CallInternal case OP_call_method\n");
-                        printf("      i is %d\n",i);
-                    #endif
-                    #ifdef PRINTCALL
-                        printf("      tag is %d\n",JS_VALUE_GET_TAG(call_argv[i]));
-                        if(JS_VALUE_GET_TAG(call_argv[i])==JS_TAG_OBJECT){
-                            //JS_DumpObject(rt,JS_VALUE_GET_PTR(call_argv[i]));
-                        }
-                        //-1 JS_TAG_OBJECT
-                    #endif
                     JS_FreeValue(ctx, call_argv[i]);
                 }
                     
@@ -14906,9 +14697,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 if (unlikely(JS_IsException(ret_val)))
                     goto exception;
                 call_argv = sp - call_argc;
-                #ifdef PRINTCALL
-                    printf("        case OP_array_from && call_argc is %d && sp is %p\n",call_argc,sp);
-                #endif
                 for(i = 0; i < call_argc; i++) {
                     ret = JS_DefinePropertyValue(ctx, ret_val, __JS_AtomFromUInt32(i), call_argv[i],
                                                  JS_PROP_C_W_E | JS_PROP_THROW);
@@ -14943,9 +14731,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             ret_val = *--sp;
             goto done;
         CASE(OP_return_undef):
-            #ifdef PRINTCALL
-                printf("        case OP_return_undef\n"); 
-            #endif
             ret_val = JS_UNDEFINED;
             goto done;
 
@@ -15072,9 +14857,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_var_undef):
         CASE(OP_get_var):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_get_var && sp is %p\n",sp);
-                #endif
                 JSValue val;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -15090,22 +14872,12 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_put_var):
         CASE(OP_put_var_init):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_put_var_init\n"); 
-                #endif
                 int ret;
                 JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
 
                 ret = JS_SetGlobalVar(ctx, atom, sp[-1], opcode - OP_put_var);
-
-                #ifdef PRINTCALL
-                if(JS_VALUE_GET_TAG(sp[-1])==JS_TAG_OBJECT){
-                    //JS_DumpObject(ctx->rt,JS_VALUE_GET_OBJ(sp[-1]));
-                }
-                #endif
-                
                 sp--;
                 if (unlikely(ret < 0))
                     goto exception;
@@ -15114,9 +14886,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_put_var_strict):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_put_var_strict\n"); 
-                #endif
                 int ret;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -15136,9 +14905,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_check_define_var):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_check_define_var\n"); 
-                #endif
                 JSAtom atom;
                 int flags;
                 atom = get_u32(pc);
@@ -15150,9 +14916,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_define_var):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_define_var\n"); 
-                #endif
                 //JSObject *tmp_p=JS_VALUE_GET_PTR(ctx->global_var_obj);
                 //JSShape *tmp_sh=tmp_p->shape;
                 //printf("        before %d\n",tmp_sh->prop_count);
@@ -15167,14 +14930,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_define_func):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_define_func\n"); 
-                #endif
-
-                //JSObject *tmp_p=JS_VALUE_GET_PTR(ctx->global_var_obj);
-                //JSShape *tmp_sh=tmp_p->shape;
-
-                //printf("        before %d\n",tmp_sh->prop_count);
 
                 JSAtom atom;
                 int flags;
@@ -15185,8 +14940,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     goto exception;
                 JS_FreeValue(ctx, sp[-1]);
                 sp--;
-
-                //printf("        after %d\n",tmp_sh->prop_count);
                 
             }
             BREAK;
@@ -15251,17 +15004,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_loc0):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_get_loc0\n");
-            #endif 
             *sp++ = JS_DupValue(ctx, var_buf[0]); 
         } 
         BREAK;
         CASE(OP_get_loc1):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_get_loc1\n");
-            #endif 
             *sp++ = JS_DupValue(ctx, var_buf[1]);
         }  
         BREAK;
@@ -15269,9 +15016,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_get_loc3): *sp++ = JS_DupValue(ctx, var_buf[3]); BREAK;
         CASE(OP_put_loc0): 
         {
-            #ifdef PRINTCALL
-                printf("        case OP_put_loc0 && tag is %d && sp is %p\n",JS_VALUE_GET_TAG(*(sp-1)),sp);
-            #endif
             set_value(ctx, &var_buf[0], *--sp); 
             
             //0 JS_TAG_INT
@@ -15279,33 +15023,21 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         BREAK;
         CASE(OP_put_loc1):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_put_loc1 && tag is %d && sp is %p\n",JS_VALUE_GET_TAG(*(sp-1)),sp);
-            #endif
             set_value(ctx, &var_buf[1], *--sp); 
         }
         BREAK; 
         CASE(OP_put_loc2):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_put_loc2\n");
-            #endif
             set_value(ctx, &var_buf[2], *--sp);
         }  
         BREAK;
         CASE(OP_put_loc3):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_put_loc3\n");
-            #endif
             set_value(ctx, &var_buf[3], *--sp); 
         } 
         BREAK;
         CASE(OP_set_loc0):
         {
-            #ifdef PRINTCALL
-                printf("        case OP_set_loc0\n");
-            #endif
             set_value(ctx, &var_buf[0], JS_DupValue(ctx, sp[-1]));
         } 
         BREAK;
@@ -15314,54 +15046,33 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_set_loc3): set_value(ctx, &var_buf[3], JS_DupValue(ctx, sp[-1])); BREAK;
         CASE(OP_get_arg0):
         {
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_arg0 && sp is %p\n",sp); 
-            #endif
             *sp++ = JS_DupValue(ctx, arg_buf[0]); 
         }
         BREAK; 
         CASE(OP_get_arg1):
         {
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_arg1\n"); 
-            #endif
             *sp++ = JS_DupValue(ctx, arg_buf[1]);
         }
         BREAK;
         CASE(OP_get_arg2):{
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_arg2\n"); 
-            #endif
             *sp++ = JS_DupValue(ctx, arg_buf[2]);
         }  
         BREAK;
         CASE(OP_get_arg3):{
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_arg3\n"); 
-            #endif
             *sp++ = JS_DupValue(ctx, arg_buf[3]);
         }  
         BREAK;
         CASE(OP_put_arg0):{
-            #ifdef PRINTCALL
-                printf("\n        case OP_put_arg0\n");
-            #endif
             set_value(ctx, &arg_buf[0], *--sp);
         }   
         BREAK;
         CASE(OP_put_arg1):
         {
-            #ifdef PRINTCALL
-                printf("\n        case OP_put_arg1\n");
-            #endif
             set_value(ctx, &arg_buf[1], *--sp);
         } 
         BREAK;
         CASE(OP_put_arg2): set_value(ctx, &arg_buf[2], *--sp); BREAK;
         CASE(OP_put_arg3):{
-            #ifdef PRINTCALL
-                printf("\n        case OP_put_arg3\n");
-            #endif
             set_value(ctx, &arg_buf[3], *--sp);
         }  
         BREAK;
@@ -15371,30 +15082,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         CASE(OP_set_arg3): set_value(ctx, &arg_buf[3], JS_DupValue(ctx, sp[-1])); BREAK;
         CASE(OP_get_var_ref0):
         {
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_var_ref0\n");
-                printf("          JS_VALUE_GET_TAG is %d\n",JS_VALUE_GET_TAG(*var_refs[0]->pvalue));
-                if(JS_VALUE_GET_TAG(*var_refs[0]->pvalue)==JS_TAG_INT){
-                    printf("      it is int && value is %d\n",JS_VALUE_GET_INT(*var_refs[0]->pvalue));
-                }
-                if(JS_VALUE_GET_TAG(*var_refs[0]->pvalue)==JS_TAG_OBJECT){
-                    //JS_DumpObject(rt,JS_VALUE_GET_OBJ(*var_refs[0]->pvalue));
-                }
-            #endif
             *sp++ = JS_DupValue(ctx, *var_refs[0]->pvalue);
         }
         BREAK;
         CASE(OP_get_var_ref1):{
-            #ifdef PRINTCALL
-                printf("\n        case OP_get_var_ref1\n");
-                printf("          JS_VALUE_GET_TAG is %d\n",JS_VALUE_GET_TAG(*var_refs[1]->pvalue));
-                if(JS_VALUE_GET_TAG(*var_refs[1]->pvalue)==JS_TAG_INT){
-                    printf("      it is int && value is %d\n",JS_VALUE_GET_INT(*var_refs[1]->pvalue));
-                }
-                if(JS_VALUE_GET_TAG(*var_refs[1]->pvalue)==JS_TAG_OBJECT){
-                    //JS_DumpObject(rt,JS_VALUE_GET_OBJ(*var_refs[1]->pvalue));
-                }
-            #endif
             *sp++ = JS_DupValue(ctx, *var_refs[1]->pvalue);
         }  
         BREAK;
@@ -15440,9 +15131,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_get_var_ref_check):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_get_var_ref_check\n"); 
-                #endif
                 int idx;
                 JSValue val;
                 idx = get_u16(pc);
@@ -15452,14 +15140,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     JS_ThrowReferenceErrorUninitialized2(ctx, b, idx, TRUE);
                     goto exception;
                 }
-                #ifdef PRINTCALL
-                    printf("          tag is %d\n",JS_VALUE_GET_TAG(val));
-                    //-1 JS_TAG_OBJECT
-                    if(JS_VALUE_GET_TAG(val)==JS_TAG_OBJECT){
-                        JSObject* tmp_var_ref=JS_VALUE_GET_OBJ(val);
-                        printf("          class id is %d && ref_count is %d\n",tmp_var_ref->class_id,tmp_var_ref->header.ref_count);
-                    }
-                #endif
                 sp[0] = JS_DupValue(ctx, val);
                 sp++;
             }
@@ -15495,17 +15175,11 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 int idx;
                 idx = get_u16(pc);
                 pc += 2;
-                #ifdef PRINTCALL
-                    printf("        case OP_set_loc_uninitialized && idx is %d && sp is %p\n",idx,sp);
-                #endif
                 set_value(ctx, &var_buf[idx], JS_UNINITIALIZED);
             }
             BREAK;
         CASE(OP_get_loc_check):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_get_loc_check && sp is %p\n",sp);
-                #endif
                 int idx;
                 idx = get_u16(pc);
                 pc += 2;
@@ -15519,9 +15193,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_put_loc_check):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_put_loc_check\n");
-                #endif
                 int idx;
                 idx = get_u16(pc);
                 pc += 2;
@@ -15548,9 +15219,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_close_loc):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_close_loc\n"); 
-                #endif
                 int idx;
                 idx = get_u16(pc);
                 pc += 2;
@@ -15614,9 +15282,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 goto exception;
             BREAK;
         CASE(OP_goto8):
-            #ifdef PRINTCALL
-                printf("        case OP_goto8\n");
-            #endif
             pc += (int8_t)pc[0];
             if (unlikely(js_poll_interrupts(ctx)))
                 goto exception;
@@ -15665,9 +15330,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #if SHORT_OPCODES
         CASE(OP_if_true8):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_if_true8\n"); 
-                #endif
                 int res;
                 JSValue op1;
 
@@ -15688,9 +15350,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_if_false8):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_if_false8\n"); 
-                #endif
                 int res;
                 JSValue op1;
 
@@ -15872,9 +15531,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_lnot):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_lnot\n");
-                #endif
                 int res;
                 JSValue op1;
 
@@ -15890,9 +15546,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_get_field && sp is %p\n",sp);
-                #endif
                 JSValue val;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -15908,9 +15561,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_field2):
             {
-                #ifdef PRINTCALL
-                    printf("\n        case OP_get_field2 && sp is %p\n",sp);
-                #endif
                 JSValue val;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -15928,10 +15578,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_put_field):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_put_field\n");
-                #endif
-
                 int ret;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -15999,9 +15645,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_define_field):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_define_field\n");
-                #endif
                 int ret;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -16017,9 +15660,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_set_name):
             {
-                #ifdef PRINTCALL
-                    printf("      case OP_set_name\n");
-                #endif
                 int ret;
                 JSAtom atom;
                 atom = get_u32(pc);
@@ -16131,9 +15771,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_get_array_el):
             {
-                #ifdef PRINTCALL
-                    printf("        case OP_get_array_el\n");
-                #endif
                 JSValue val;
 
                 val = JS_GetPropertyValue(ctx, sp[-2], sp[-1]);
@@ -16294,12 +15931,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
         CASE(OP_add):
             {
-                //通过查看这里了解一下怎么获取JSValue，然后现在是怎么获取宏的信息
-
-                #ifdef PRINTCALL
-                    printf("        case OP_add\n");
-                #endif
-
                 JSValue op1, op2;
                 op1 = sp[-2];
                 op2 = sp[-1];
@@ -16542,9 +16173,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_post_inc):
         CASE(OP_post_dec):
-            #ifdef PRINTCALL
-                printf("        case OP_post_inc\n");
-            #endif
             if (js_post_inc_slow(ctx, sp, opcode))
                 goto exception;
             sp++;
@@ -16962,9 +16590,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 goto free_and_set_false;
             }
         CASE(OP_is_null):
-            #ifdef PRINTCALL
-                printf("        case OP_is_null\n"); 
-            #endif
             if (JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_NULL) {
                 goto set_true;
             } else {
@@ -19657,12 +19282,6 @@ static __exception int next_token(JSParseState *s)
     }
     s->buf_ptr = p;
 
-    /*
-    //    dump_token(s, &s->token);
-    #ifdef PRINTER
-        printf("0 exit next_token\n");
-    #endif
-    */
     return 0;
 
  fail:
@@ -20012,11 +19631,6 @@ static inline int get_prev_opcode(JSFunctionDef *fd) {
 }
 
 static BOOL js_is_live_code(JSParseState *s) {
-    /*
-    #ifdef PRINTER
-        printf("      3 enter js_is_live_code && get_prev_opcode is %d\n",get_prev_opcode(s->cur_func));
-    #endif
-    */
     switch (get_prev_opcode(s->cur_func)) {
     case OP_tail_call:   //34
     case OP_tail_call_method: //35
@@ -20090,11 +19704,6 @@ static int update_label(JSFunctionDef *s, int label, int delta)
 
 static int new_label_fd(JSFunctionDef *fd, int label)
 {
-    //#ifdef PRINTER
-    //    printf("        4 enter new_label_fd && label is %d\n",label);
-    //    printf("        fd->label_size is %d && fd->label_count is %d\n",fd->label_size,fd->label_count);
-    //    printf("        the address of the pointer is %p\n",fd->label_slots);
-    //#endif
 
     LabelSlot *ls;
 
@@ -20111,10 +19720,6 @@ static int new_label_fd(JSFunctionDef *fd, int label)
         ls->addr = -1;
         ls->first_reloc = NULL;
     }
-    //#ifdef PRINTER
-    //    printf("        4 exit new_label_fd && label is %d\n",label);
-    //    printf("        the address of the pointer is %p\n",fd->label_slots);
-    //#endif
     return label;
 }
 
@@ -20511,12 +20116,6 @@ typedef enum {
 static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
                       JSVarDefEnum var_def_type)
 {
-	//#ifdef PRINTER
-	//	printf("            6b enter define_var && var_def_type is %d\n",var_def_type);
-        //6 JS_VAR_DEF_VAR
-		//1 JS_VAR_DEF_LET
-	//#endif
-
     JSContext *ctx = s->ctx;
     JSVarDef *vd;
     int idx;
@@ -20531,9 +20130,6 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
     case JS_VAR_DEF_FUNCTION_DECL:
     case JS_VAR_DEF_NEW_FUNCTION_DECL:
         idx = find_lexical_decl(ctx, fd, name, fd->scope_first, TRUE);
-        //#ifdef PRINTER
-		//   printf("            idx is %d\n",idx);
-	    //#endif
         if (idx >= 0) {
             if (idx < GLOBAL_VAR_OFFSET) {
                 if (fd->vars[idx].scope_level == fd->scope_level) {
@@ -20650,10 +20246,6 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
     default:
         abort();
     }
-
-	//#ifdef PRINTER
-	//	printf("            6b exit define_var\n");
-	//#endif
 
     return idx;
 }
@@ -22094,9 +21686,6 @@ done:
 /* XXX: remove */
 static BOOL has_with_scope(JSFunctionDef *s, int scope_level)
 {
-    //#ifdef PRINTER
-    //    printf("                        12 enter has_with_scope && scope_level is %d\n",scope_level);
-    //#endif
     /* check if scope chain contains a with statement */
     while (s) {
         int scope_idx = s->scopes[scope_level].first;
@@ -22110,17 +21699,8 @@ static BOOL has_with_scope(JSFunctionDef *s, int scope_level)
         }
         /* check parent scopes */
         scope_level = s->parent_scope_level;
-        //#ifdef PRINTER
-        //    printf("                        scope level is %d\n",scope_level);
-        //#endif
         s = s->parent;
-        //#ifdef PRINTER
-        //    printf("after the parent \n");
-        //#endif
     }
-    //#ifdef PRINTER
-    //    printf("                        12 exit has_with_scope\n");
-    //#endif
     return FALSE;
 }
 
@@ -28585,14 +28165,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
         var_object_test(ctx, s, var_name, op, bc, &label_done, 0);
     }
 
-    //#ifdef PRINTER
-    /*
-		if(s->parent){
-			printf("        parent scope level is %d\n",s->parent_scope_level);
-		}
-    */
-	//#endif
-
     /* check parent scopes */
     for (fd = s; fd->parent;) {
         scope_level = fd->parent_scope_level;
@@ -29454,12 +29026,6 @@ static BOOL code_match(CodeContext *s, int pos, ...)
 
 static void instantiate_hoisted_definitions(JSContext *ctx, JSFunctionDef *s, DynBuf *bc)
 {
-	//#ifdef PRINTER
-		//printf("      3b enter instantiate_hoisted_definitions\n");
-		//printf("      s->arg_count is %d\n",s->arg_count);
-		//printf("      s->var_count is %d\n",s->var_count);
-		//printf("      s->global_var_count is %d\n",s->global_var_count);
-	//#endif
 
     int i, idx, label_next = -1;
 
@@ -29591,9 +29157,6 @@ static void instantiate_hoisted_definitions(JSContext *ctx, JSFunctionDef *s, Dy
     s->global_vars = NULL;
     s->global_var_count = 0;
     s->global_var_size = 0;
-    //#ifdef PRINTER
-	//	printf("      3b exit instantiate_hoisted_definitions\n");
-	//#endif
 }
 
 static int skip_dead_code(JSFunctionDef *s, const uint8_t *bc_buf, int bc_len,
@@ -29878,12 +29441,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
         case OP_enter_scope:
             {
                 int scope_idx, scope = get_u16(bc_buf + pos + 1);
-
-				//#ifdef PRINTER
-				//	printf("    scope is %d\n",scope);
-				//	printf("    body_scope is %d\n",s->body_scope);
-				//	printf("    the first scope is %d\n",s->scopes[scope].first);
-				//#endif
 
                 if (scope == s->body_scope) {
                     instantiate_hoisted_definitions(ctx, s, &bc_out);
@@ -32987,11 +32544,7 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
                 if (!fd->source)
                     goto fail;
             }
-            
-            
-            #ifdef PRINTER
-                printf("      3 exit js_preparse_function_decl2\n");
-            #endif
+
 
             return 0;
         }
@@ -33651,7 +33204,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("1 time cost is %ld\n",end - start);
-        //printMemory();
     #endif
     
     err = js_parse_program(s);
@@ -33666,7 +33218,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("2 time cost is %ld\n",end - start);
-        //printMemory();
     #endif
 
     /* create the function object and all the enclosed functions */
@@ -33675,7 +33226,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("3 time cost is %ld\n",end - start);
-        //printMemory();
     #endif
 
     if (JS_IsException(fun_obj))
@@ -33699,7 +33249,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     #ifdef TIMER
         end = clock();
         printf("4 time cost is %ld\n",end - start);
-        //printMemory();
     #endif
 
 	#ifdef PRINTER
@@ -46131,10 +45680,6 @@ static JSValue promise_reaction_job(JSContext *ctx, int argc,
         res2 = JS_UNDEFINED;
     }
     JS_FreeValue(ctx, res);
-
-    #ifdef PRINTMODULE
-        printf("            exit promise_reaction_job\n");
-    #endif
 
     return res2;
 }
