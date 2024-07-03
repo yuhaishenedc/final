@@ -1685,9 +1685,6 @@ BOOL JS_IsJobPending(JSRuntime *rt)
    executed successfully. the context of the job is stored in '*pctx' */
 int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)
 {
-    #ifdef PRINTER
-        printf("          enter JS_ExecutePendingJob\n");
-    #endif
 
     JSContext *ctx;
     JSJobEntry *e;
@@ -1713,9 +1710,6 @@ int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)
     JS_FreeValue(ctx, res);
     js_free(ctx, e);
     *pctx = ctx;
-    #ifdef PRINTER
-        printf("          exit JS_ExecutePendingJob\n");
-    #endif
     return ret;
 }
 
@@ -1844,26 +1838,6 @@ void JS_FreeRuntime(JSRuntime *rt)
             printf("Secondary object leaks: %d\n", count);
     }
 #endif
-
-    #ifdef PRINTER
-    if(!list_empty(&rt->gc_obj_list)){
-        printf("not empty\n");
-        struct list_head *el, *el1;
-        JSGCObjectHeader *p;
-        list_for_each_safe(el, el1, &rt->gc_obj_list) {
-            p = list_entry(el, JSGCObjectHeader, link);
-            JSObject *tmp_p=(JSObject *)p;
-            printf("%d\n",tmp_p->class_id);
-            if(tmp_p->class_id==13){
-                printf("function address is %p\n",p);
-                printf("line number is %d && bytecode length is %d\n",tmp_p->u.func.function_bytecode->debug.line_num,tmp_p->u.func.function_bytecode->byte_code_len);
-                
-            }
-        }
-        
-    }
-    #endif
-    
     
     //here is wrong
     assert(list_empty(&rt->gc_obj_list));
@@ -6955,10 +6929,6 @@ static JSAutoInitFunc *js_autoinit_func_table[] = {
 static int JS_AutoInitProperty(JSContext *ctx, JSObject *p, JSAtom prop,
                                JSProperty *pr, JSShapeProperty *prs)
 {
-    //#ifdef PRINTER
-        //printf("          5 enter JS_AutoInitProperty\n");
-    //#endif
-
     JSValue val;
     JSContext *realm;
     JSAutoInitFunc *func;
@@ -6967,10 +6937,6 @@ static int JS_AutoInitProperty(JSContext *ctx, JSObject *p, JSAtom prop,
         return -1;
 
     realm = js_autoinit_get_realm(pr);
-
-    //#ifdef PRINTER
-        //printf("          the id is %d\n",js_autoinit_get_id(pr));
-    //#endif
 
     func = js_autoinit_func_table[js_autoinit_get_id(pr)];
     /* 'func' shall not modify the object properties 'pr' */
@@ -6982,9 +6948,6 @@ static int JS_AutoInitProperty(JSContext *ctx, JSObject *p, JSAtom prop,
         return -1;
     pr->u.value = val;
 
-    //#ifdef PRINTER
-        //printf("          5 exit JS_AutoInitProperty\n");
-    //#endif
     return 0;
 }
 
@@ -7038,10 +7001,6 @@ JSValue JS_GetPropertyInternal(JSContext *ctx, JSValueConst obj,
     } else {
         p = JS_VALUE_GET_OBJ(obj);
     }
-
-    #ifdef PRINTER
-        JS_DumpObject(ctx->rt,p);
-    #endif
 
     for(;;) {
         prs = find_own_property(&pr, p, prop);
@@ -12966,12 +12925,6 @@ static JSVarRef *get_var_ref(JSContext *ctx, JSStackFrame *sf,
         //printf("        tag is %d\n",JS_VALUE_GET_TAG(sf->arg_buf[var_idx]));
     }else{
         var_ref->pvalue = &sf->var_buf[var_idx];
-        #ifdef PRINTER
-        if(JS_VALUE_GET_TAG(sf->var_buf[var_idx])==JS_TAG_INT){
-            printf("        it is int && value is %d\n",JS_VALUE_GET_INT(sf->var_buf[var_idx]));
-        }
-        #endif
-        //printf("        tag is %d\n",JS_VALUE_GET_TAG(sf->var_buf[var_idx]));
     }
         
     var_ref->value = JS_UNDEFINED;
@@ -13746,9 +13699,6 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
     JSCFunctionEnum cproto;
 
     p = JS_VALUE_GET_OBJ(func_obj);
-    #ifdef PRINTER
-        JS_DumpObject(rt,p);
-    #endif
     cproto = p->u.cfunc.cproto;
     arg_count = p->u.cfunc.length;
 
@@ -13947,12 +13897,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 #define CASE(op)        case_ ## op
 #define DEFAULT         case_default
 #define BREAK           SWITCH(pc)
-    
-    #ifdef PRINTER
-        printf(" tag is %d &&",JS_VALUE_GET_TAG(func_obj));
-        //0:  JS_TAG_INT 
-        //-1: JS_TAG_OBJECT
-    #endif
 
     if (js_poll_interrupts(caller_ctx))
         return JS_EXCEPTION;
@@ -13984,13 +13928,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     }
     p = JS_VALUE_GET_OBJ(func_obj);
 
-    #ifdef PRINTER
-        printf(" p->class_id is %d\n",p->class_id);
-        //49: JS_CLASS_ASYNC_GENERATOR_FUNCTION
-        //13: JS_CLASS_BYTECODE_FUNCTION
-        //12: JS_CLASS_C_FUNCTION
-    #endif
-
     if (unlikely(p->class_id != JS_CLASS_BYTECODE_FUNCTION)) {
         JSClassCall *call_func;
         call_func = rt->class_array[p->class_id].call;
@@ -14008,16 +13945,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     
     b = p->u.func.function_bytecode;
 
-    #ifdef PRINTER
-        printf("      function line number is %d && filename is %s\n",b->line_num,b->strfilename);
-        printf("      b->preparse_flag is %d && p->need_reparse_closure is %d\n",b->preparse_flag,p->need_reparse_closure);
-    #endif
-
     if(b->preparse_flag==1){   //now fully parse the preparsed function
-
-        #ifdef PRINTER
-            printf("      enter the re-parse process\n");
-        #endif
 
         JSFunctionDef *tmp=(JSFunctionDef *)(b->preparse_fd);
         tmp->reparse_flag=1;
@@ -14032,10 +13960,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
     if(p->need_reparse_closure==-9877){
 
-        #ifdef PRINTER
-            printf("      process the reparse closure variable  && line number is %d && filnename is %s\n",b->line_num,b->strfilename);
-        #endif
-
         p->need_reparse_closure=0;
         JSVarRef **reparse_var_refs;
 
@@ -14048,10 +13972,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
                 JSClosureVar *cv = &b->closure_var[i];
                 JSVarRef *var_ref;
-
-                #ifdef PRINTER
-                    printf("      i is %d && cv->is_local is %d && cv->is_arg is %d && cv->var_idx is %d\n",i,cv->is_local,cv->is_arg,cv->var_idx);
-                #endif
 
                 JSObject *reparse_parent_p=p->create_closure_parent;
                 JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
@@ -14067,11 +13987,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         printf("here is error\n");
                         goto not_a_function;
                     }
-                    
-
-                    #ifdef PRINTER
-                        printf("      exit_flag is %d\n",exit_flag);
-                    #endif
 
                     //此时islocal的栈桢已经退出了 
                     if(!exit_flag){
@@ -14104,29 +14019,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                             add_gc_object(rt, &var_ref->header, JS_GC_OBJ_TYPE_VAR_REF);
                         }
                     }
-
                     
-                    #ifdef PRINTER
-                        printf("      var ref tag is %d\n",JS_VALUE_GET_TAG(*(var_ref->pvalue)));
-                        if(JS_VALUE_GET_TAG(*(var_ref->pvalue))==JS_TAG_INT){
-                            printf("      it is int && value is %d\n",JS_VALUE_GET_INT(*(var_ref->pvalue)));
-                        }
-                        //if(JS_VALUE_GET_TAG(*(var_ref->pvalue))==JS_TAG_OBJECT){
-                        //    JS_DumpObject(caller_ctx->rt,JS_VALUE_GET_PTR(*(var_ref->pvalue)));
-                        //}
-                        
-                        //note here the var_ref object may be the function itself
-                        //so the var_refs[i] is not actually setted
-                        //if dump here may cause a segmentation fault
-                        //var_ref[i] is not filled, so here is a segmentation fault
-                    #endif
-                    
-
                 }else{
-
-                    #ifdef PRINTER
-                        printf("      cv not local && cv->var_idx is %d\n",cv->var_idx);
-                    #endif
 
                     //is_local correspond to the current is_local variable's parent exit_var_buf
                     JSFunctionBytecode *b_parent=(JSFunctionBytecode *)(b->parent);
@@ -14135,14 +14029,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     //JSObject *reparse_parent_p=(JSObject *)(b_parent->parent_p);
                     
                     while(b_parent!=NULL){
-                        #ifdef PRINTER
-                            printf("      enter the while loop && function line number is %d && fd->closure_var_count is %d\n",parent_fd->line_num,parent_fd->closure_var_count);
-                        #endif
                         for(int j=0; j<parent_fd->closure_var_count; j++){
                             JSClosureVar *tmp=&parent_fd->closure_var[j];
-                            #ifdef PRINTER
-                                printf("      tmp->var_idx is %d && tmp->is_local is %d\n",tmp->var_idx,tmp->is_local);
-                            #endif
                             if(tmp->var_idx==cv->var_idx && tmp->is_local && tmp->is_arg==cv->is_arg){
 
                                 reparse_parent_p=reparse_parent_p->create_closure_parent;
@@ -14179,14 +14067,8 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                     }
                                     else{
                                         if(reparse_parent_p->exit_var_buf){
-                                            #ifdef PRINTER
-                                                printf("      parent exit\n");
-                                            #endif
                                             var_ref->pvalue=&reparse_parent_p->exit_var_buf[cv->var_idx];
                                         }else{
-                                            #ifdef PRINTER
-                                                printf("      parent not exit\n");
-                                            #endif
                                             var_ref->pvalue=&parent_sf->var_buf[cv->var_idx];
                                         }
                                     }
@@ -14223,14 +14105,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     }
                 }
                 reparse_var_refs[i] = var_ref;
-
-                #ifdef PRINTER
-                    printf("      %d\n",JS_VALUE_GET_TAG(*var_ref->pvalue));
-                    if(JS_VALUE_GET_TAG(*var_ref->pvalue)==JS_TAG_OBJECT){
-                        JSObject* tmp_var_ref=JS_VALUE_GET_OBJ(*var_ref->pvalue);
-                        printf("      class id is %d && ref_count is %d\n",tmp_var_ref->class_id,tmp_var_ref->header.ref_count);
-                    }
-                #endif
             }
         }
     }
@@ -14240,10 +14114,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     } else {
         arg_allocated_size = 0;
     }
-
-    #ifdef PRINTER
-        printf("      arg_allocated_size is %d && b->var_count is %d && b->stack_size is %d\n",arg_allocated_size,b->var_count,b->stack_size);
-    #endif
 
     alloca_size = sizeof(JSValue) * (arg_allocated_size + b->var_count +
                                      b->stack_size);
@@ -14293,11 +14163,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     p->exit_arg_buf=NULL;
     p->exit_var_buf=NULL;
 
-
-    #ifdef PRINTER
-        printf("      before the execution of bytecode function line number is %d\n",b->line_num);
-    #endif
-
  restart:
     for(;;) {
 
@@ -14341,12 +14206,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = js_closure(ctx, JS_DupValue(ctx, b->cpool[*pc++]), var_refs, sf);
             if (unlikely(JS_IsException(sp[-1])))
                 goto exception;
-
-            #ifdef PRINTER  
-                //*sp sp[0] dont work，这里后面看一下
-                printf("        after process op_fclosure8\n");
-                printf("\n");
-            #endif
 
             BREAK;
         CASE(OP_push_empty_string):
@@ -16664,10 +16523,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         sf->cur_sp = sp;
     } else {
     done:
-        #ifdef PRINTER
-            printf("      function finish execution && line number is %d\n",b->line_num);
-            printf("      b->arg_count is %d && b->var_count is %d\n",b->arg_count,b->var_count);
-        #endif
 
         if(b->arg_count){
             p->exit_arg_buf=js_malloc(ctx,sizeof(JSValue)*b->arg_count);
@@ -16684,9 +16539,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         }
 
         if (unlikely(!list_empty(&sf->var_ref_list))) {
-            #ifdef PRINTER
-                printf("      enter the close_var_refs process\n");
-            #endif
             /* variable references reference the stack: must close them */
             close_var_refs(rt, sf);
         }
@@ -16694,15 +16546,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         /* free the local variables and stack */
         
         for(pval = local_buf; pval < sp; pval++) { 
-            #ifdef PRINTER
-                printf("      enter the free local variable process\n");
-                if(JS_VALUE_GET_TAG(*pval)==JS_TAG_OBJECT){
-                    JS_DumpObject(rt,JS_VALUE_GET_OBJ(*pval));
-                }
-                if(JS_VALUE_GET_TAG(*pval)==JS_TAG_INT){
-                    printf("the int value is %d\n",JS_VALUE_GET_INT(*pval));
-                }
-            #endif
             JS_FreeValue(ctx, *pval);
         }
         
@@ -16850,10 +16693,6 @@ static JSValue JS_CallConstructorInternal(JSContext *ctx,
     }
 
     b = p->u.func.function_bytecode;
-
-    #ifdef PRINTER
-        printf("      b->is_derived_class_constructor is %d\n",b->is_derived_class_constructor);
-    #endif
 
     if (b->is_derived_class_constructor) {
         return JS_CallInternal(ctx, func_obj, JS_UNDEFINED, new_target, argc, argv, flags,NULL,NULL);
@@ -18556,9 +18395,6 @@ static inline BOOL token_is_pseudo_keyword(JSParseState *s, JSAtom atom) {
 }
 
 static __exception int js_preparse_regexp(JSParseState *s){
-    #ifdef PRINTER
-        printf("        enter js_preparse_regexp && line number is %d\n",s->line_num);
-    #endif
     const uint8_t *p;
     BOOL in_class;
     uint32_t c;
@@ -18634,10 +18470,6 @@ static __exception int js_preparse_regexp(JSParseState *s){
     //here set the value to 'a' can avoid this process
     s->token.val = 'a';
     s->buf_ptr = p;
-
-    #ifdef PRINTER
-        printf("        exit js_preparse_regexp\n");
-    #endif
 
     return 0;
 }
@@ -19801,9 +19633,6 @@ static int find_arg(JSContext *ctx, JSFunctionDef *fd, JSAtom name)
     #endif
     int i;
     for(i = fd->arg_count; i-- > 0;) {
-        #ifdef PRINTER
-            printf("            fd->arg_count is %d && i is %d && var_name is %d\n",fd->arg_count,i,fd->args[i].var_name);
-        #endif
         if (fd->args[i].var_name == name)
             return i | ARGUMENT_VAR_OFFSET;
     }
@@ -20634,12 +20463,6 @@ static int js_parse_skip_parens_token(JSParseState *s, int *pbits, BOOL no_line_
 
     for (;;) {
         
-        #ifdef PRINTER
-            printf("          in js_parse_skip_parens_token for loop && token is ");
-            dump_token(s,&s->token);
-            printf("          level is %ld\n",level);
-        #endif
-        
         switch(s->token.val) {
         case '(':
         case '[':
@@ -20814,10 +20637,6 @@ static __exception int js_parse_object_literal(JSParseState *s)
     emit_op(s, OP_object);
     has_proto = FALSE;
     while (s->token.val != '}') {
-        #ifdef PRINTER
-            printf("                        inside js_parse_object_literal && line number is %d && token is ",s->line_num);
-		    dump_token(s,&s->token);
-        #endif
         /* specific case for getter/setter */
         start_ptr = s->token.ptr;
         start_line = s->token.line_num;
@@ -20836,13 +20655,6 @@ static __exception int js_parse_object_literal(JSParseState *s)
         }
 
         prop_type = js_parse_property_name(s, &name, TRUE, TRUE, FALSE);
-
-        #ifdef PRINTER
-            printf("                        prop_type is %d && token is ",prop_type);
-            dump_token(s,&s->token);
-            //0 PROP_TYPE_IDENT
-            //2 PROP_TYPE_GET
-        #endif
 
         if (prop_type < 0)
             goto fail;
@@ -22663,9 +22475,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
         break;
     case TOK_IDENT:
         {
-            #ifdef PRINTER
-                printf("                      case TOK_IDENT\n");
-            #endif
             JSAtom name;
             if (s->token.u.ident.is_reserved) {
                 return js_parse_error_reserved_identifier(s);
@@ -22823,15 +22632,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
     for(;;) {
         JSFunctionDef *fd = s->cur_func;
         BOOL has_optional_chain = FALSE;
-
-        #ifdef PRINTER
-			printf("                      inside the for loop && s->token.val is %d && token is ",s->token.val);
-			dump_token(s,&s->token);
-            //40 is '('
-			//59 is ';'
-			//46 is '.'
-			//44 is ','
-		#endif
         
         if (s->token.val == TOK_QUESTION_MARK_DOT) {
             /* optional chaining */
@@ -22862,14 +22662,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
 
             if (call_type == FUNC_CALL_NORMAL) {  //0 
             parse_func_call2:
-
-                #ifdef PRINTER
-					printf("                      in s->token.val = '('\n");
-                    //OP_scope_get_var 	182
-					//OP_get_field  	65
-					//OP_set_name  		77
-				#endif
-
 
                 switch(opcode = get_prev_opcode(fd)) {
                 case OP_get_field:
@@ -22929,13 +22721,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                 opcode = OP_invalid;
             }
 
-            #ifdef PRINTER
-				printf("                      in s->token.val = '(' && ");
-				printf("call_type is %d\n",call_type);
-                //FUNC_CALL_NORMAL 0
-			#endif
-
-			
             if (call_type == FUNC_CALL_TEMPLATE) {
                 if (js_parse_template(s, 1, &arg_count))
                     return -1;
@@ -23132,12 +22917,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     return js_parse_error(s, "expecting field name");
                 }
 
-                #ifdef PRINTER
-					printf("                      in s->token.val == '.' && ");
-					printf("get_prev_opcode is %d\n",get_prev_opcode(fd));
-                    //OP_get_super is 52
-				#endif
-
                 if (get_prev_opcode(fd) == OP_get_super) {
                     JSValue val;
                     int ret;
@@ -23182,10 +22961,6 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
     }
     if (optional_chaining_label >= 0)
         emit_label(s, optional_chaining_label);
-
-	#ifdef PRINTER
-		printf("                      11 exit js_parse_postfix_expr\n");
-	#endif
 
     return 0;
 }
@@ -27738,17 +27513,10 @@ static int get_closure_var2(JSContext *ctx, JSFunctionDef *s,
         var_idx = get_closure_var2(ctx, s->parent, fd, is_local,
                                    is_arg, var_idx, var_name,
                                    is_const, is_lexical, var_kind);
-        #ifdef PRINTER
-            printf("          s->line_num is %d && var_idx %d\n",s->line_num,var_idx);
-        #endif
         if (var_idx < 0)
             return -1;
         is_local = FALSE;
     }
-
-    #ifdef PRINTER
-        printf("          s->line_num is %d && s->closure_var_count is %d && is_local is %d\n",s->line_num,s->closure_var_count,is_local);
-    #endif
     
     for(i = 0; i < s->closure_var_count; i++) {
         JSClosureVar *cv = &s->closure_var[i];
@@ -28052,10 +27820,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
         }
     }
 
-    #ifdef PRINTER
-		printf("        stage 1 var_idx is %d\n",var_idx);
-	#endif
-
     if (var_idx >= 0) {
         if ((op == OP_scope_put_var || op == OP_scope_make_ref) &&
             !(var_idx & ARGUMENT_VAR_OFFSET) &&
@@ -28170,10 +27934,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
         scope_level = fd->parent_scope_level;
         fd = fd->parent;
 
-        #ifdef PRINTER
-		    printf("        looking inside the parent scope && parent line number is %d\n",fd->line_num);
-	    #endif
-
         for (idx = fd->scopes[scope_level].first; idx >= 0;) {
             vd = &fd->vars[idx];
             if (vd->var_name == var_name) {
@@ -28200,20 +27960,12 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
         }
         is_arg_scope = (idx == ARG_SCOPE_END);
 
-
-        #ifdef PRINTER
-		    printf("        var_idx is %d && is_arg_scope is %d && is_pseudo_var is %d\n",var_idx,is_arg_scope,is_pseudo_var);
-	    #endif
-
         if (var_idx >= 0)
             break;
 
         //through here find the 'a' in the parent argument list
         if (!is_arg_scope) {
             var_idx = find_var(ctx, fd, var_name);
-            #ifdef PRINTER
-		        printf("        var_idx is %d\n",var_idx);
-	        #endif
             if (var_idx >= 0)
                 break;
         }
@@ -28268,12 +28020,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
     if (!fd)
         fd = s;
 
-    #ifdef PRINTER
-        printf("        outside the parent process && fd->line_num is %d\n",fd->line_num);
-        printf("        var_idx is %d && fd->is_eval is %d && fd->closure_var_count is %d\n",var_idx,fd->is_eval,fd->closure_var_count);
-        printf("        s->closure_var_count is %d\n",s->closure_var_count);
-    #endif
-
     if (var_idx < 0 && fd->is_eval) {
         int idx1;
         for (idx1 = 0; idx1 < fd->closure_var_count; idx1++) {
@@ -28312,9 +28058,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
     if (var_idx >= 0) {
         // find the corresponding closure variable
         if (var_idx & ARGUMENT_VAR_OFFSET) {
-            #ifdef PRINTER
-                printf("        ARGUMENT_VAR_OFFSET\n");
-            #endif
             fd->args[var_idx - ARGUMENT_VAR_OFFSET].is_captured = 1;
             //here function closure_var_count increases (from 0 to 1)
             idx = get_closure_var(ctx, s, fd,
@@ -28450,10 +28193,6 @@ done:
         dbuf_put_u32(bc, label_done);
         s->label_slots[label_done].pos2 = bc->size;
     }
-
-    #ifdef PRINTER
-        printf("        exit resolve_scope_var && s->closure_var_count is %d\n",s->closure_var_count);
-    #endif
 
     return pos_next;
 }
@@ -29475,19 +29214,12 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
         case OP_leave_scope:
             {
 
-                #ifdef PRINTER
-                    printf("    process OP_leave_scope\n");
-                #endif
-
                 int scope_idx, scope = get_u16(bc_buf + pos + 1);
 
                 for(scope_idx = s->scopes[scope].first; scope_idx >= 0;) {
                     JSVarDef *vd = &s->vars[scope_idx];
                     if (vd->scope_level == scope) {
                         if (vd->is_captured) {
-                            #ifdef PRINTER
-                                printf("    scope_idx is %d && scope is %d\n",scope_idx,scope);
-                            #endif
                             dbuf_putc(&bc_out, OP_close_loc);
                             dbuf_put_u16(&bc_out, scope_idx);
                         }
@@ -31453,10 +31185,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             function_size += (fd->arg_count + fd->var_count) * sizeof(*b->vardefs);
         }
 
-        #ifdef PRINTER
-            printf("  fd->closure_var_count is %d\n",fd->closure_var_count);
-        #endif
-
         closure_var_offset = function_size;
         function_size += fd->closure_var_count * sizeof(*fd->closure_var);
 
@@ -32623,10 +32351,6 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
     //int func_idx, lexical_func_idx = -1;
     BOOL has_opt_arg;
 
-    #ifdef PRINTER
-        printf("    filename is %s\n",fd->strfilename);
-    #endif
-
     fd->total_scope_level=-100;
 
     JSParseFunctionEnum func_type=fd->func_type;
@@ -32673,10 +32397,7 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
             goto fail;
         fd->defined_arg_count = 1;
     } else {
-        
-        #ifdef PRINTER
-            printf("    enter parameter process\n");
-        #endif
+
 
         if(s->token.val=='('){
             int skip_bits;
@@ -32944,9 +32665,6 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
 
 //todo: the fail need to be processed
 fail:
-	#ifdef PRINTER
-		printf("        a fail condition happens\n");
-	#endif
     //s->cur_func = fd->parent;
     //js_free_function_def(ctx, fd);
     //if (pfd)
@@ -33814,10 +33532,6 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
     }
 
     //problem is here
-    #ifdef PRINTER
-        printf("          function line number is %d\n",b->debug.line_num);
-    #endif
-    
     if (JS_WriteFunctionBytecode(s, b->byte_code_buf, b->byte_code_len))
         goto fail;
     
@@ -33830,17 +33544,9 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
     
     for(i = 0; i < b->cpool_count; i++) {
 
-        #ifdef PRINTER
-            printf("          parent line number is %d && i is %d && count is %d\n",b->debug.line_num,i,b->cpool_count);
-        #endif
-
         if (JS_WriteObjectRec(s, b->cpool[i]))
             goto fail;
     }
-
-    #ifdef PRINTERWRITE
-        printf("          5 exit JS_WriteFunctionTag\n");
-    #endif
 
     return 0;
  fail:
@@ -33849,9 +33555,6 @@ static int JS_WriteFunctionTag(BCWriterState *s, JSValueConst obj)
 
 static int JS_WriteModule(BCWriterState *s, JSValueConst obj)
 {
-    #ifdef PRINTERWRITE
-        printf("          5 enter JS_WriteModule\n");
-    #endif
 
     JSModuleDef *m = JS_VALUE_GET_PTR(obj);
     int i;
@@ -33894,10 +33597,6 @@ static int JS_WriteModule(BCWriterState *s, JSValueConst obj)
 
     if (JS_WriteObjectRec(s, m->func_obj))
         goto fail;
-
-    #ifdef PRINTERWRITE
-        printf("          5 exit JS_WriteModule\n");
-    #endif
 
     return 0;
  fail:
@@ -34032,9 +33731,6 @@ static int JS_WriteSharedArrayBuffer(BCWriterState *s, JSValueConst obj)
 
 static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
 {
-    #ifdef PRINTERWRITE
-        printf("        4 enter JS_WriteObjectRec\n");
-    #endif
 
     uint32_t tag;
 
@@ -34044,13 +33740,6 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
     }
 
     tag = JS_VALUE_GET_NORM_TAG(obj);
-
-    #ifdef PRINTER
-        printf("        tag is %d\n",tag);
-        //-7:   JS_TAG_STRING
-        //-3:   JS_TAG_MODULE
-        //-2:   JS_TAG_FUNCTION_BYTECODE
-    #endif
 
     switch(tag) {
     case JS_TAG_NULL:
@@ -34160,12 +33849,6 @@ static int JS_WriteObjectRec(BCWriterState *s, JSValueConst obj)
         JS_ThrowInternalError(s->ctx, "unsupported tag (%d)", tag);
         goto fail;
     }
-
-    #ifdef PRINTERWRITE
-        printf("        4 exit JS_WriteObjectRec\n");
-    #endif
-
-
     return 0;
 
  fail:
@@ -34215,9 +33898,6 @@ static int JS_WriteObjectAtoms(BCWriterState *s)
 uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
                          int flags, uint8_t ***psab_tab, size_t *psab_tab_len)
 {
-    #ifdef PRINTERWRITE
-        printf("      3 enter JS_WriteObject2\n");
-    #endif
 
     BCWriterState ss, *s = &ss;
 
@@ -34262,10 +33942,6 @@ uint8_t *JS_WriteObject2(JSContext *ctx, size_t *psize, JSValueConst obj,
         *psab_tab = NULL;
     if (psab_tab_len)
         *psab_tab_len = 0;
-
-    #ifdef PRINTERWRITE
-        printf("      3 exit JS_WriteObject2\n");
-    #endif
 
     return NULL;
 }
@@ -35350,17 +35026,8 @@ static JSAtom find_atom(JSContext *ctx, const char *name)
 static JSValue JS_InstantiateFunctionListItem2(JSContext *ctx, JSObject *p,
                                                JSAtom atom, void *opaque)
 {
-    //#ifdef PRINTER
-    //    printf("              7 enter JS_InstantiateFunctionListItem2\n");
-    //#endif
     const JSCFunctionListEntry *e = opaque;
     JSValue val;
-
-    //#ifdef PRINTER
-    //    printf("              e->def_type is %d\n",e->def_type);
-    //    printf("              e->name is %s\n",e->name);
-        //0:  JS_DEF_CFUNC
-    //#endif
 
     switch(e->def_type) {
     case JS_DEF_CFUNC:
@@ -35377,9 +35044,6 @@ static JSValue JS_InstantiateFunctionListItem2(JSContext *ctx, JSObject *p,
     default:
         abort();
     }
-    //#ifdef PRINTER
-    //    printf("              exit JS_InstantiateFunctionListItem2\n");
-    //#endif
     return val;
 }
 
@@ -45119,9 +44783,6 @@ static void map_decref_record(JSRuntime *rt, JSMapRecord *mr)
 
 static void reset_weak_ref(JSRuntime *rt, JSObject *p)
 {
-    //#ifdef PRINTER
-    //    printf("            6 enter reset_weak_ref\n");
-    //#endif
     JSMapRecord *mr, *mr_next;
     JSMapState *s;
     
@@ -45144,9 +44805,6 @@ static void reset_weak_ref(JSRuntime *rt, JSObject *p)
     }
 
     p->first_weak_ref = NULL; /* fail safe */
-    //#ifdef PRINTER
-    //    printf("            6 exit reset_weak_ref\n");
-    //#endif
 }
 
 static JSValue js_map_set(JSContext *ctx, JSValueConst this_val,
@@ -45642,9 +45300,6 @@ static void promise_reaction_data_free(JSRuntime *rt,
 static JSValue promise_reaction_job(JSContext *ctx, int argc,
                                     JSValueConst *argv)
 {
-    #ifdef PRINTER
-        printf("            enter promise_reaction_job\n");
-    #endif
     JSValueConst handler, arg, func;
     JSValue res, res2;
     BOOL is_reject;
@@ -45743,9 +45398,6 @@ static void reject_promise(JSContext *ctx, JSValueConst promise,
 static JSValue js_promise_resolve_thenable_job(JSContext *ctx,
                                                int argc, JSValueConst *argv)
 {
-    #ifdef PRINTER
-        printf("            enter js_promise_resolve_thenable_jo\n");
-    #endif
     JSValueConst promise, thenable, then;
     JSValue args[2], res;
 
@@ -45766,9 +45418,6 @@ static JSValue js_promise_resolve_thenable_job(JSContext *ctx,
     }
     JS_FreeValue(ctx, args[0]);
     JS_FreeValue(ctx, args[1]);
-    #ifdef PRINTER
-        printf("            enter js_promise_resolve_thenable_jo\n");
-    #endif
     return res;
 }
 
@@ -48197,9 +47846,6 @@ static void JS_AddIntrinsicBasicObjects(JSContext *ctx)
                                countof(js_error_proto_funcs));
 
     for(i = 0; i < JS_NATIVE_ERROR_COUNT; i++) {
-        #ifdef PRINTER
-            printf("        i is %d\n",i);
-        #endif
         proto = JS_NewObjectProto(ctx, ctx->class_proto[JS_CLASS_ERROR]);
         JS_DefinePropertyValue(ctx, proto, JS_ATOM_name,
                                JS_NewAtomString(ctx, native_error_name[i]),
