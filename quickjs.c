@@ -1456,9 +1456,6 @@ static inline BOOL js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)
 
 JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
 {
-    #ifdef PRINTER
-        printf("  1 enter JS_NewRuntime2\n");
-    #endif
     JSRuntime *rt;
     JSMallocState ms;
 
@@ -1510,10 +1507,6 @@ JSRuntime *JS_NewRuntime2(const JSMallocFunctions *mf, void *opaque)
     JS_UpdateStackTop(rt);
 
     rt->current_exception = JS_NULL;
-
-    #ifdef PRINTER
-        printf("  1 exit JS_NewRuntime2\n");
-    #endif
 
     return rt;
  fail:
@@ -1973,9 +1966,6 @@ void JS_FreeRuntime(JSRuntime *rt)
 
 JSContext *JS_NewContextRaw(JSRuntime *rt)
 {
-    #ifdef PRINTER
-        printf("      3 enter JS_NewContextRaw\n");
-    #endif
     JSContext *ctx;
     int i;
 
@@ -2001,17 +1991,11 @@ JSContext *JS_NewContextRaw(JSRuntime *rt)
     init_list_head(&ctx->loaded_modules);
 
     JS_AddIntrinsicBasicObjects(ctx);
-    #ifdef PRINTER
-        printf("      3 exit JS_NewContextRaw\n\n");
-    #endif
     return ctx;
 }
 
 JSContext *JS_NewContext(JSRuntime *rt)
 {
-    #ifdef PRINTER
-        printf("    2 enter JS_NewContext\n");
-    #endif
     JSContext *ctx;
 
     ctx = JS_NewContextRaw(rt);
@@ -2028,9 +2012,6 @@ JSContext *JS_NewContext(JSRuntime *rt)
     JS_AddIntrinsicMapSet(ctx);
     JS_AddIntrinsicTypedArrays(ctx);
     JS_AddIntrinsicPromise(ctx);
-    #ifdef PRINTER
-        printf("    2 exit JS_NewContext\n");
-    #endif
     return ctx;
 }
 
@@ -2055,12 +2036,6 @@ static inline void set_value(JSContext *ctx, JSValue *pval, JSValue new_val)
     JSValue old_val;
     old_val = *pval;
     *pval = new_val;
-
-    #ifdef PRINTER
-        if (JS_VALUE_HAS_REF_COUNT(old_val)){
-            printf("          enter here\n");
-        }
-    #endif
 
     JS_FreeValue(ctx, old_val);
 
@@ -4231,9 +4206,6 @@ static void js_shape_hash_unlink(JSRuntime *rt, JSShape *sh)
 static no_inline JSShape *js_new_shape2(JSContext *ctx, JSObject *proto,
                                         int hash_size, int prop_size)
 {
-    #ifdef PRINTER
-        printf("          5 enter js_new_shape2\n");
-    #endif
 
     JSRuntime *rt = ctx->rt;
     void *sh_alloc;
@@ -4265,9 +4237,6 @@ static no_inline JSShape *js_new_shape2(JSContext *ctx, JSObject *proto,
     sh->is_hashed = TRUE;
     sh->has_small_array_index = FALSE;
     js_shape_hash_link(ctx->rt, sh);
-    #ifdef PRINTER
-        printf("          5 exit js_new_shape2\n");
-    #endif
     return sh;
 }
 
@@ -4624,10 +4593,6 @@ static __maybe_unused void JS_DumpShapes(JSRuntime *rt)
 
 static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID class_id)
 {
-    #ifdef PRINTER
-        printf("            6 enter JS_NewObjectFromShape && class_id is %d\n",class_id);
-    #endif
-
     JSObject *p;
 
     js_trigger_gc(ctx->rt, sizeof(JSObject));
@@ -4720,9 +4685,6 @@ static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID clas
     }
     p->header.ref_count = 1;
     add_gc_object(ctx->rt, &p->header, JS_GC_OBJ_TYPE_JS_OBJECT);
-    #ifdef PRINTER
-        printf("            6 exit JS_NewObjectFromShape\n");
-    #endif
     return JS_MKPTR(JS_TAG_OBJECT, p);
 }
 
@@ -4738,11 +4700,6 @@ static JSObject *get_proto_obj(JSValueConst proto_val)
 JSValue JS_NewObjectProtoClass(JSContext *ctx, JSValueConst proto_val,
                                JSClassID class_id)
 {
-    #ifdef PRINTER
-        printf("          5 enter JS_NewObjectProtoClass && tag is %d\n",JS_VALUE_GET_TAG(proto_val));
-        //2 JS_TAG_NULL
-    #endif
-
     JSShape *sh;
     JSObject *proto;
 
@@ -4902,9 +4859,6 @@ static JSValue JS_NewCFunction3(JSContext *ctx, JSCFunction *func,
                                 int length, JSCFunctionEnum cproto, int magic,
                                 JSValueConst proto_val)
 {
-    #ifdef PRINTER
-        printf("          5 enter JS_NewCFunction3\n");
-    #endif
 
     JSValue func_obj;
     JSObject *p;
@@ -4928,9 +4882,6 @@ static JSValue JS_NewCFunction3(JSContext *ctx, JSCFunction *func,
     name_atom = JS_NewAtom(ctx, name);
     js_function_set_properties(ctx, func_obj, name_atom, length);
     JS_FreeAtom(ctx, name_atom);
-    #ifdef PRINTER
-        printf("          5 exit JS_NewCFunction3\n");
-    #endif
     return func_obj;
 }
 
@@ -5104,9 +5055,6 @@ static force_inline JSShapeProperty *find_own_property(JSProperty **ppr,
         if (likely(pr->atom == atom)) {
             *ppr = &p->prop[h - 1];
             /* the compiler should be able to assume that pr != NULL here */
-            #ifdef PRINTER
-                printf("            6 exit find_own_property\n");
-            #endif
             return pr;
         }
         h = pr->hash_next;
@@ -9302,9 +9250,6 @@ static int JS_DefineObjectName(JSContext *ctx, JSValueConst obj,
     &&  JS_IsObject(obj)
     &&  !js_object_has_name(ctx, obj)
     &&  JS_DefinePropertyValue(ctx, obj, JS_ATOM_name, JS_AtomToString(ctx, name), flags) < 0) {
-        #ifdef PRINTER
-            printf("        4 enter JS_DefineObjectName -1\n");
-        #endif
         return -1;
     }
 
@@ -9456,9 +9401,6 @@ static JSValue JS_GetGlobalVar(JSContext *ctx, JSAtom prop,
 
     prs = find_own_property(&pr, p, prop);
 
-    #ifdef PRINTER
-        
-    #endif
     if (prs) {
         /* XXX: should handle JS_PROP_TMASK properties */
         if (unlikely(JS_IsUninitialized(pr->u.value)))
@@ -12902,9 +12844,6 @@ static JSVarRef *get_var_ref(JSContext *ctx, JSStackFrame *sf,
 
     list_for_each(el, &sf->var_ref_list) {
         var_ref = list_entry(el, JSVarRef, header.link);
-        #ifdef PRINTER
-            printf("        inside the list_for_each process && var_ref->var_idx is %d\n",var_ref->var_idx);
-        #endif
         if (var_ref->var_idx == var_idx && var_ref->is_arg == is_arg) {
             var_ref->header.ref_count++;
             return var_ref;
@@ -13311,10 +13250,6 @@ static JSValue js_closure2(JSContext *ctx, JSValue func_obj,
             JSClosureVar *cv = &b->closure_var[i];
             JSVarRef *var_ref;
 
-            #ifdef PRINTER
-                printf("      js_closure2 && i is %d && cv->is_local is %d && cv->is_arg is %d && cv->var_idx is %d\n",i,cv->is_local,cv->is_arg,cv->var_idx);
-            #endif
-
             if (cv->is_local) {
                 /* reuse the existing variable reference if it already exists */
                 var_ref = get_var_ref(ctx, sf, cv->var_idx, cv->is_arg);
@@ -13382,10 +13317,6 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
 
     b = JS_VALUE_GET_PTR(bfunc);
 
-    #ifdef PRINTER
-        printf("    function line number is %d && function preparse_flag is %d\n",b->line_num,b->preparse_flag);
-    #endif
-    
     if(b->preparse_flag==1 || b->preparse_flag==2){
 
         func_obj=JS_NewObjectClass(ctx,func_kind_to_class_id[b->func_kind]);
@@ -13446,17 +13377,8 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
                                   JS_PROP_WRITABLE);
         } 
 
-        #ifdef PRINTER
-		    printf("    2a exit js_closure in advance && line number is %d\n",b->debug.line_num);
-            //JS_DumpObject(ctx->rt,JS_VALUE_GET_PTR(func_obj));
-	    #endif
-
         return func_obj;
     }
-
-    #ifdef PRINTER
-        printf("    b->closure_var_count is %d\n",b->closure_var_count);
-    #endif
 
     func_obj = JS_NewObjectClass(ctx, func_kind_to_class_id[b->func_kind]);
 
@@ -13729,11 +13651,6 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
 
     func = p->u.cfunc.c_function;
 
-    #ifdef PRINTER
-        printf("        cproto is %d\n",cproto);
-        //1: JS_CFUNC_generic_magic
-    #endif
-
     switch(cproto) {
     case JS_CFUNC_constructor:
     case JS_CFUNC_constructor_or_func:
@@ -13937,9 +13854,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         }
         JSValue ret_call_func=call_func(caller_ctx, func_obj, this_obj, argc,
                          (JSValueConst *)argv, flags);
-        #ifdef PRINTER
-            printf("      exit JS_Callinternal && call_c_function\n");
-        #endif
         return ret_call_func;
     }
     
@@ -27795,10 +27709,6 @@ static int resolve_scope_var(JSContext *ctx, JSFunctionDef *s,
     }
     is_arg_scope = (idx == ARG_SCOPE_END);
 
-    #ifdef PRINTER
-		printf("        after local search && var_idx is %d && is_arg_scope is %d\n",var_idx,is_arg_scope);
-	#endif
-
     if (var_idx < 0) {
         /* argument scope: variables are not visible but pseudo
            variables are visible */
@@ -31058,10 +30968,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
 
         add_gc_object(ctx->rt, &b->header, JS_GC_OBJ_TYPE_FUNCTION_BYTECODE);
 
-        #ifdef PRINTER
-            printf("  1 exit at the fd->state ==1 position\n\n");
-        #endif
-
         JSValue ret_b=JS_MKPTR(JS_TAG_FUNCTION_BYTECODE,b);
 
         return ret_b;
@@ -31331,13 +31237,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
 
         //问题就在这里，会出现free无法释放的情况
         //js_free(ctx, fd);
-
-
-	    #ifdef PRINTER
-		    printf("  1b exit js_create_function && function line number is %d\n",b->debug.line_num);
-            printf("  b->closure_var_count is %d\n",b->closure_var_count);
-            printf("\n");
-        #endif
 
         b->full_fd=fd;
         fd->reparse_bytecode=b;
