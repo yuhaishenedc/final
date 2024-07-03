@@ -44,8 +44,6 @@
 
 #define CMD_NAME "run-test262"
 
-#define PRINTER
-
 typedef struct namelist_t {
     char **array;
     int count;
@@ -1175,9 +1173,6 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
                     const char *error_type, FILE *outfile, int eval_flags,
                     int is_async)
 {
-    #ifdef PRINTER
-        printf("enter eval_buf filename is %s\n",filename);
-    #endif
     JSValue res_val, exception_val;
     int ret, error_line, pos, pos_line;
     BOOL is_error, has_error_line;
@@ -1345,9 +1340,6 @@ static int eval_buf(JSContext *ctx, const char *buf, size_t buf_len,
     JS_FreeCString(ctx, error_name);
     JS_FreeValue(ctx, exception_val);
     JS_FreeValue(ctx, res_val);
-    #ifdef PRINTER
-        printf("exit eval_buf filename is %s\n",filename);
-    #endif
     return ret;
 }
 
@@ -1882,9 +1874,6 @@ static int slow_test_threshold;
 
 void run_test_dir_list(namelist_t *lp, int start_index, int stop_index)
 {
-    #ifdef PRINTER
-        printf("  1 enter run_test_dir_list lp->count %d\n",lp->count);
-    #endif
     int i;
 
     namelist_sort(lp);

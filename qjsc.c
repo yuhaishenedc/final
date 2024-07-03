@@ -78,8 +78,6 @@ static const FeatureEntry feature_list[] = {
     { "module-loader", NULL },
 };
 
-//#define PRINTER
-
 void namelist_add(namelist_t *lp, const char *name, const char *short_name,
                   int flags)
 {
@@ -175,9 +173,6 @@ static void output_object_code(JSContext *ctx,
                                FILE *fo, JSValueConst obj, const char *c_name,
                                BOOL load_only)
 {
-    #ifdef PRINTER
-        printf("    2 enter output_object_code\n");
-    #endif
     uint8_t *out_buf;
     size_t out_buf_len;
     int flags;
@@ -200,10 +195,6 @@ static void output_object_code(JSContext *ctx,
     fprintf(fo, "};\n\n");
 
     js_free(ctx, out_buf);
-
-    #ifdef PRINTER
-        printf("    2 exit output_object_code\n");
-    #endif
 }
 
 static int js_module_dummy_init(JSContext *ctx, JSModuleDef *m)
@@ -291,9 +282,6 @@ static void compile_file(JSContext *ctx, FILE *fo,
                          const char *c_name1,
                          int module)
 {
-    #ifdef PRINTER
-        printf("  1 enter compile_file\n");
-    #endif
     uint8_t *buf;
     char c_name[1024];
     int eval_flags;
@@ -331,10 +319,6 @@ static void compile_file(JSContext *ctx, FILE *fo,
     output_object_code(ctx, fo, obj, c_name, FALSE);
     
     JS_FreeValue(ctx, obj);
-
-    #ifdef PRINTER
-        printf("  1 exit compile_file\n");
-    #endif
 }
 
 static const char main_c_template1[] =
@@ -500,10 +484,6 @@ typedef enum {
 
 int main(int argc, char **argv)
 {
-    #ifdef PRINTER
-        printf("0 enter qjsc main\n");
-    #endif
-
     int c, i, verbose;
     const char *out_filename, *cname;
     char cfilename[1024];
@@ -754,10 +734,6 @@ int main(int argc, char **argv)
     namelist_free(&cname_list);
     namelist_free(&cmodule_list);
     namelist_free(&init_module_list);
-
-    #ifdef PRINTER
-        printf("0 exit qjsc main\n");
-    #endif
 
     return 0;
 }
