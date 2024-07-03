@@ -111,13 +111,7 @@
 
 #define PREPARSER
 //#define PRINTER
-//#define PRINTGC
 //#define PRINTCALL
-//#define PRINTFREE
-//#define PRINTATOM
-//#define PRINTRESOLVEVARIABLES
-//#define PRINTRESOLVELABELS
-//#define PRINTSCOPE
 #define TIMER
 //#define PRINTMODULE
 //#define MEMORY
@@ -1817,10 +1811,6 @@ void JS_SetRuntimeInfo(JSRuntime *rt, const char *s)
 
 void JS_FreeRuntime(JSRuntime *rt)
 {
-	#ifdef PRINTFREE
-		printf("\nenter JS_FreeRuntime\n");
-	#endif
-
     struct list_head *el, *el1;
     int i;
 
@@ -2028,10 +2018,6 @@ void JS_FreeRuntime(JSRuntime *rt)
         rt->mf.js_free(&ms, rt);
     }
 
-	#ifdef PRINTFREE
-		printf("exit JS_FreeRuntime\n");
-	#endif
-
 }
 
 JSContext *JS_NewContextRaw(JSRuntime *rt)
@@ -2176,9 +2162,6 @@ static JSContext *JS_DupContext(JSContext *ctx)
 static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
                            JS_MarkFunc *mark_func)
 {
-    #ifdef PRINTFREE
-        printf("          enter JS_MarkContext\n");
-    #endif
     int i;
     struct list_head *el;
 
@@ -2212,25 +2195,14 @@ static void JS_MarkContext(JSRuntime *rt, JSContext *ctx,
 
     if (ctx->array_shape)
         mark_func(rt, &ctx->array_shape->header);
-
-    #ifdef PRINTFREE
-        printf("          exit JS_MarkContext\n");
-    #endif
 }
 
 void JS_FreeContext(JSContext *ctx)
 {
-	#ifdef PRINTFREE
-		printf("                8 enter JS_FreeContext\n");
-	#endif
-
     JSRuntime *rt = ctx->rt;
     int i;
 
     if (--ctx->header.ref_count > 0){
-		#ifdef PRINTFREE
-			printf("                JS_FreeContext directly return\n");
-		#endif
 		return;
 	}
     assert(ctx->header.ref_count == 0);
@@ -2297,10 +2269,6 @@ void JS_FreeContext(JSContext *ctx)
     list_del(&ctx->link);
     remove_gc_object(&ctx->header);
     rt->mf.js_free(&rt->malloc_state, ctx);
-
-	#ifdef PRINTFREE
-		printf("                8 exit JS_FreeContext\n");
-	#endif
 }
 
 JSRuntime *JS_GetRuntime(JSContext *ctx)
@@ -2650,12 +2618,6 @@ static JSAtom js_get_atom_index(JSRuntime *rt, JSAtomStruct *p)
    freed. */
 static JSAtom __JS_NewAtom(JSRuntime *rt, JSString *str, int atom_type)
 {
-    #ifdef PRINTATOM
-        printf("      3 enter __JS_NewAtom &&");
-        printf("atom_type is %d && str->atom_type is %d\n",atom_type,str->atom_type);
-        JS_DumpString(rt, str); printf("\n");
-    #endif
-
     uint32_t h, h1, i;
     JSAtomStruct *p;
     int len;
@@ -2680,10 +2642,6 @@ enum {
     if (atom_type < JS_ATOM_TYPE_SYMBOL) {
         /* str is not NULL */
         if (str->atom_type == atom_type) {
-            #ifdef PRINTATOM
-                printf("inside the special case\n");
-                JS_DumpString(rt, str); printf("\n");
-            #endif
             /* str is the atom, return its index */
             i = js_get_atom_index(rt, str);
             /* reduce string refcount and increase atom's unless constant */
@@ -2769,10 +2727,7 @@ enum {
         if (str->atom_type == 0) {
             p = str;
             p->atom_type = atom_type;
-        } else {   //待补充，什么时候会出现这里的情况
-        #ifdef PRINTATOM
-            printf("enter the special case\n");
-        #endif
+        } else {
             p = js_malloc_rt(rt, sizeof(JSString) +
                              (str->len << str->is_wide_char) +
                              1 - str->is_wide_char);
@@ -2789,9 +2744,6 @@ enum {
             js_free_string(rt, str);
         }
     } else {
-        #ifdef PRINTATOM
-            printf("str is null??\n");
-        #endif
         p = js_malloc_rt(rt, sizeof(JSAtomStruct)); /* empty wide string */
         if (!p)
             return JS_ATOM_NULL;
@@ -2850,10 +2802,6 @@ static JSAtom __JS_NewAtomInit(JSRuntime *rt, const char *str, int len,
 static JSAtom __JS_FindAtom(JSRuntime *rt, const char *str, size_t len,
                             int atom_type)
 {
-    #ifdef PRINTATOM
-        printf("              7 enter __JS_FindAtom\n");
-    #endif
-    
     uint32_t h, h1, i;
     JSAtomStruct *p;
 
@@ -2881,10 +2829,6 @@ static JSAtom __JS_FindAtom(JSRuntime *rt, const char *str, size_t len,
 
 static void JS_FreeAtomStruct(JSRuntime *rt, JSAtomStruct *p)
 {
-    #ifdef PRINTFREE
-        printf("                  9 enter __JS_FreeAtomStruct\n");
-    #endif
-
     uint32_t i = p->hash_next;  /* atom_index */
     if (p->atom_type != JS_ATOM_TYPE_SYMBOL) {
         JSAtomStruct *p0, *p1;
@@ -2922,50 +2866,22 @@ static void JS_FreeAtomStruct(JSRuntime *rt, JSAtomStruct *p)
 
 static void __JS_FreeAtom(JSRuntime *rt, uint32_t i)
 {
-    #ifdef PRINTFREE
-        printf("                8 enter __JS_FreeAtom\n");
-    #endif
     JSAtomStruct *p;
-
     p = rt->atom_array[i];
-
-    #ifdef PRINTFREE
-        printf("                ref_count is %d\n",p->header.ref_count);
-        /*
-        if(p->is_wide_char){
-            printf("atom is %s\n",p->u.str8);
-        }else{
-            printf("atom is %s\n",p->u.str16);
-        }
-        */
-    #endif
-
-    
 
     if (--p->header.ref_count > 0)
         return;
     JS_FreeAtomStruct(rt, p);
-
-    #ifdef PRINTFREE
-        printf("                8 exit __JS_FreeAtom\n");
-    #endif
 }
 
 /* Warning: 'p' is freed */
 static JSAtom JS_NewAtomStr(JSContext *ctx, JSString *p)
 {
-    #ifdef PRINTATOM
-        printf("  2 enter JS_NewAtomStr\n");
-    #endif
-
     JSRuntime *rt = ctx->rt;
     uint32_t n;
     if (is_num_string(&n, p)) {
         if (n <= JS_ATOM_MAX_INT) {
             js_free_string(rt, p);
-            #ifdef PRINTATOM
-                printf("  2 exit point 1 JS_NewAtomStr\n");
-            #endif
             return __JS_AtomFromUInt32(n);
         }
     }
@@ -2975,10 +2891,6 @@ static JSAtom JS_NewAtomStr(JSContext *ctx, JSString *p)
 
 JSAtom JS_NewAtomLen(JSContext *ctx, const char *str, size_t len)
 {
-    #ifdef PRINTATOM
-        printf("            6 enter JS_NewAtomLen && len is %ld\n",len);
-    #endif
-    
     JSValue val;
 
     if (len == 0 || !is_digit(*str)) {
@@ -3280,14 +3192,8 @@ void JS_FreeAtom(JSContext *ctx, JSAtom v)
 
 void JS_FreeAtomRT(JSRuntime *rt, JSAtom v)
 {
-    #ifdef PRINTFREE
-        printf("              7 enter JS_FreeAtomRT\n");
-    #endif
     if (!__JS_AtomIsConst(v))
         __JS_FreeAtom(rt, v);
-    #ifdef PRINTFREE
-        printf("              7 exit JS_FreeAtomRT\n");
-    #endif
 }
 
 /* return TRUE if 'v' is a symbol with a string description */
@@ -3899,11 +3805,6 @@ static JSValue string_buffer_end(StringBuffer *s)
 /* create a string from a UTF-8 buffer */
 JSValue JS_NewStringLen(JSContext *ctx, const char *buf, size_t buf_len)
 {
-
-    #ifdef PRINTATOM
-        printf("              7 enter JS_NewStringLen\n");
-    #endif
-
     const uint8_t *p, *p_end, *p_start, *p_next;
     uint32_t c;
     StringBuffer b_s, *b = &b_s;
@@ -4483,15 +4384,9 @@ static void js_free_shape0(JSRuntime *rt, JSShape *sh)
 
 static void js_free_shape(JSRuntime *rt, JSShape *sh)
 {
-    #ifdef PRINTFREE
-        printf("            6 enter js_free_shape\n");
-    #endif
     if (unlikely(--sh->header.ref_count <= 0)) {
         js_free_shape0(rt, sh);
     }
-    #ifdef PRINTFREE
-        printf("            6 exit js_free_shape\n");
-    #endif
 }
 
 static void js_free_shape_null(JSRuntime *rt, JSShape *sh)
@@ -5206,13 +5101,7 @@ static JSAutoInitIDEnum js_autoinit_get_id(JSProperty *pr)
 
 static void js_autoinit_free(JSRuntime *rt, JSProperty *pr)
 {
-    #ifdef PRINTFREE
-        printf("              7 enter js_autoinit_free\n");
-    #endif
     JS_FreeContext(js_autoinit_get_realm(pr));
-    #ifdef PRINTFREE
-        printf("              7 exit js_autoinit_free\n");
-    #endif
 }
 
 static void js_autoinit_mark(JSRuntime *rt, JSProperty *pr,
@@ -5223,11 +5112,6 @@ static void js_autoinit_mark(JSRuntime *rt, JSProperty *pr,
 
 static void free_property(JSRuntime *rt, JSProperty *pr, int prop_flags)
 {
-    #ifdef PRINTFREE
-        printf("            6 enter free_property && prop_flags&TMASK is %d\n",prop_flags & JS_PROP_TMASK);
-        //JS_PROP_AUTOINIT 48
-        //JS_PROP_VARREF   32
-    #endif
 
     if (unlikely(prop_flags & JS_PROP_TMASK)) {
         if ((prop_flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
@@ -5243,9 +5127,6 @@ static void free_property(JSRuntime *rt, JSProperty *pr, int prop_flags)
     } else {
         JS_FreeValueRT(rt, pr->u.value);
     }
-    #ifdef PRINTFREE
-        printf("            6 exit free_property\n");
-    #endif
 }
 
 static force_inline JSShapeProperty *find_own_property1(JSObject *p,
@@ -5377,10 +5258,6 @@ static void js_c_function_mark(JSRuntime *rt, JSValueConst val,
 
 static void js_bytecode_function_finalizer(JSRuntime *rt, JSValue val)
 {
-    #ifdef PRINTFREE
-        printf("            6 enter js_bytecode_function_finalizer\n");
-    #endif
-
     JSObject *p1, *p = JS_VALUE_GET_OBJ(val);
     JSFunctionBytecode *b;
     JSVarRef **var_refs;
@@ -5388,23 +5265,13 @@ static void js_bytecode_function_finalizer(JSRuntime *rt, JSValue val)
     
     p1 = p->u.func.home_object;
     if (p1) {
-        #ifdef PRINTFREE
-            printf("            case p1\n");
-        #endif
         JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_OBJECT, p1));
     }
     b = p->u.func.function_bytecode;
     if (b) {
-        #ifdef PRINTFREE
-            printf("            case b && line number is %d && bytecode len is %d\n",b->debug.line_num,b->byte_code_len);
-
-        #endif
         var_refs = p->u.func.var_refs;
         if (var_refs) {
             for(i = 0; i < b->closure_var_count; i++){
-                #ifdef PRINTFREE
-                    printf("            in js_bytecode_function_finalizer for loop\n");
-                #endif
                 free_var_ref(rt, var_refs[i]);
             }
                 
@@ -5412,31 +5279,15 @@ static void js_bytecode_function_finalizer(JSRuntime *rt, JSValue val)
         }
         JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, b));
     }
-    
-    #ifdef PRINTFREE
-        if(b){
-            JSRefCountHeader *tmp_p = (JSRefCountHeader *)b;
-            printf("            JSFunctionBytecode ref_count is %d\n",tmp_p->ref_count);
-        }
-        printf("            6 exit js_bytecode_function_finalizer\n");
-    #endif
-    
 }
 
 static void js_bytecode_function_mark(JSRuntime *rt, JSValueConst val,
                                       JS_MarkFunc *mark_func)
 {
-    #ifdef PRINTFREE
-        printf("          5 enter js_bytecode_function_mark\n");
-    #endif
     JSObject *p = JS_VALUE_GET_OBJ(val);
     JSVarRef **var_refs = p->u.func.var_refs;
     JSFunctionBytecode *b = p->u.func.function_bytecode;
     int i;
-
-    #ifdef PRINTFREE
-        printf("          function line number is %d && byte_code_len is %d\n",b->debug.line_num,b->byte_code_len);
-    #endif
 
     if (p->u.func.home_object) {
         JS_MarkValue(rt, JS_MKPTR(JS_TAG_OBJECT, p->u.func.home_object),
@@ -5456,9 +5307,6 @@ static void js_bytecode_function_mark(JSRuntime *rt, JSValueConst val,
            part of a cycle */
         JS_MarkValue(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, b), mark_func);
     }
-    #ifdef PRINTFREE
-        printf("          5 exit js_bytecode_function_mark\n");
-    #endif
 }
 
 static void js_bound_function_finalizer(JSRuntime *rt, JSValue val)
@@ -5506,13 +5354,6 @@ static void js_for_in_iterator_mark(JSRuntime *rt, JSValueConst val,
 
 static void free_object(JSRuntime *rt, JSObject *p)
 {
-    #ifdef PRINTFREE
-        printf("          5 enter free_object\n");
-        if(js_class_has_bytecode(p->class_id)){
-            printf("          function line number is %d\n",p->u.func.function_bytecode->debug.line_num);
-        }
-    #endif
-
     int i;
     JSClassFinalizer *finalizer;
     JSShape *sh;
@@ -5523,14 +5364,8 @@ static void free_object(JSRuntime *rt, JSObject *p)
     /* free all the fields */
     sh = p->shape;
     pr = get_shape_prop(sh);
-    #ifdef PRINTFREE
-        printf("          sh->prop_count is %d\n",sh->prop_count);
-    #endif
 
     for(i = 0; i < sh->prop_count; i++) {
-        #ifdef PRINTFREE
-            printf("          in free_object for loop && i is %d\n",i);
-        #endif
         free_property(rt, &p->prop[i], pr->flags);
         pr++;
     }
@@ -5547,17 +5382,8 @@ static void free_object(JSRuntime *rt, JSObject *p)
         reset_weak_ref(rt, p);
     }
 
-    #ifdef PRINTFREE
-        printf("          p->class_id is %d\n",p->class_id);
-        //JS_CLASS_OBJECT 1
-        //JS_CLASS_BYTECODE_FUNCTION 13
-    #endif
-
     finalizer = rt->class_array[p->class_id].finalizer;
     if (finalizer){
-        #ifdef PRINTFREE
-            printf("          execute finalizer\n");
-        #endif
         (*finalizer)(rt, JS_MKPTR(JS_TAG_OBJECT, p));
     }
 
@@ -5569,33 +5395,15 @@ static void free_object(JSRuntime *rt, JSObject *p)
 
     remove_gc_object(&p->header);
 
-    #ifdef PRINTFREE
-        printf("          rt->gc_phase is %d && p->header.ref_count is %d\n",rt->gc_phase,p->header.ref_count);
-    #endif
-
     if (rt->gc_phase == JS_GC_PHASE_REMOVE_CYCLES && p->header.ref_count != 0) {
         list_add_tail(&p->header.link, &rt->gc_zero_ref_count_list);
     } else {
         rt->mf.js_free(&rt->malloc_state, p);
     }
-
-    #ifdef PRINTFREE
-        printf("          5 exit free_object\n");
-    #endif
 }
 
 static void free_gc_object(JSRuntime *rt, JSGCObjectHeader *gp)
 {
-    #ifdef PRINTFREE
-        printf("        4 enter free_gc_object && gp->gc_obj_type is %d\n",gp->gc_obj_type);
-        //0: JS_GC_OBJ_TYPE_JS_OBJECT
-        //1: JS_GC_OBJ_TYPE_FUNCTION_BYTECODE'
-        if(gp->gc_obj_type==JS_GC_OBJ_TYPE_JS_OBJECT){
-            JS_DumpObject(rt,(JSObject *)gp);
-        }
-    #endif
-
-
     switch(gp->gc_obj_type) {
     case JS_GC_OBJ_TYPE_JS_OBJECT:
         free_object(rt, (JSObject *)gp);
@@ -5606,25 +5414,15 @@ static void free_gc_object(JSRuntime *rt, JSGCObjectHeader *gp)
     default:
         abort();
     }
-    #ifdef PRINTFREE
-        printf("        4 exit free_gc_object\n");
-    #endif
 }
 
 static void free_zero_refcount(JSRuntime *rt)
 {
-    #ifdef PRINTFREE
-        printf("\n      3 enter free_zero_refcount\n");
-    #endif
-
     struct list_head *el;
     JSGCObjectHeader *p;
     
     rt->gc_phase = JS_GC_PHASE_DECREF;
     for(;;) {
-        #ifdef PRINTFREE
-            printf("      in free_zero_refcount for loop\n");
-        #endif
         el = rt->gc_zero_ref_count_list.next;
         if (el == &rt->gc_zero_ref_count_list)
             break;
@@ -5633,9 +5431,6 @@ static void free_zero_refcount(JSRuntime *rt)
         free_gc_object(rt, p);
     }
     rt->gc_phase = JS_GC_PHASE_NONE;
-    #ifdef PRINTFREE
-        printf("      3 exit free_zero_refcount\n");
-    #endif
 }
 
 /*
@@ -5662,27 +5457,7 @@ static inline void JS_FreeValueRT(JSRuntime *rt, JSValue v)
 /* called with the ref_count of 'v' reaches zero. */
 void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
 {
-    #ifdef PRINTFREE
-        printf("\n  2 enter __JS_FreeValueRT && ");
-    #endif
-
     uint32_t tag = JS_VALUE_GET_TAG(v);
-
-    #ifdef PRINTFREE
-        printf("tag is %d\n",tag);
-        //-1: JS_TAG_OBJECT
-        //-2: JS_TAG_FUNCTION_BYTECODE
-    #endif
-
-    #ifdef PRINTFREE
-        if(tag==JS_TAG_OBJECT){
-            JSObject * tmp=JS_VALUE_GET_OBJ(v);
-            JS_DumpObject(rt,tmp);
-            if(js_class_has_bytecode(tmp->class_id)){
-                printf("  function line number is %d\n",tmp->u.func.function_bytecode->debug.line_num);
-            }
-        }
-    #endif
 
 #ifdef DUMP_FREE
     {
@@ -5714,33 +5489,6 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
     case JS_TAG_FUNCTION_BYTECODE:
         {
             JSGCObjectHeader *p = JS_VALUE_GET_PTR(v);
-
-            #ifdef PRINTFREE
-            if(tag==JS_TAG_OBJECT){
-                JSObject * tmp_p=JS_VALUE_GET_PTR(v);
-                if(js_class_has_bytecode(tmp_p->class_id)){
-                    JSFunctionBytecode* b=tmp_p->u.func.function_bytecode;
-                    JSRefCountHeader *ref_p=(JSRefCountHeader *)b;
-                    JSValue func_code=JS_MKPTR(JS_TAG_FUNCTION_BYTECODE,b);
-                    if(JS_VALUE_HAS_REF_COUNT(func_code)){
-                        printf("  bytecode ref_count is %d\n",ref_p->ref_count);
-                    }else{
-                        printf("  not exists\n");
-                    }
-                }
-            }else{
-                printf("  case JS_TAG_FUNCTION_BYTECODE\n");
-                JSFunctionBytecode *bytecode_ptr=(JSFunctionBytecode *)p;
-                printf("  function line number is %d && byte code len is %d\n",bytecode_ptr->debug.line_num,bytecode_ptr->byte_code_len);
-            }
-            #endif
-            
-            #ifdef PRINTFREE
-                printf("  rt->gc_phase is %d\n",rt->gc_phase);
-                //2: JS_GC_PHASE_REMOVE_CYCLES
-                //1: JS_GC_PHASE_DECREF
-                //0: JS_GC_PHASE_NONE
-            #endif
             
             if (rt->gc_phase != JS_GC_PHASE_REMOVE_CYCLES) {
                 list_del(&p->link);
@@ -5764,41 +5512,20 @@ void __JS_FreeValueRT(JSRuntime *rt, JSValue v)
         printf("__JS_FreeValue: unknown tag=%d\n", tag);
         abort();
     }
-    #ifdef PRINTFREE
-        printf("  2 exit __JS_FreeValueRT\n");
-    #endif
 }
 
 void __JS_FreeValue(JSContext *ctx, JSValue v)
 {
-    #ifdef PRINTFREE
-        printf("\n1 enter __JS_FreeValue\n");
-    #endif
     __JS_FreeValueRT(ctx->rt, v);
-    #ifdef PRINTFREE
-        printf("1 exit __JS_FreeValue\n");
-    #endif
 }
 
 /* garbage collection */
 static void add_gc_object(JSRuntime *rt, JSGCObjectHeader *h,
                           JSGCObjectTypeEnum type)
 {
-    #ifdef PRINTGC
-        printf("enter add_gc_object && type is %d\n",type);
-        //0 JS_GC_OBJ_TYPE_JS_OBJECT
-        //2 JS_GC_OBJ_TYPE_SHAPE
-        //5 JS_GC_OBJ_TYPE_JS_CONTEXT
-    #endif
     h->mark = 0;
     h->gc_obj_type = type;
     list_add_tail(&h->link, &rt->gc_obj_list);
-    #ifdef PRINTGC
-        printf("%p\n",h);
-    #endif
-    #ifdef PRINTGC
-        printf("exit add_gc_object\n");
-    #endif
 }
 
 static void remove_gc_object(JSGCObjectHeader *h)
@@ -5808,19 +5535,6 @@ static void remove_gc_object(JSGCObjectHeader *h)
 
 void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
 {
-    #ifdef PRINTFREE
-        printf("            6 enter JS_MarkValue && tag is %d\n",JS_VALUE_GET_TAG(val));
-        if(JS_VALUE_GET_TAG(val)==JS_TAG_FUNCTION_BYTECODE){
-            JSFunctionBytecode * markvalue_tmp= JS_VALUE_GET_PTR(val);
-            printf("            function line number is %d\n",markvalue_tmp->debug.line_num);
-        }
-        //-11: JS_TAG_FIRST 
-        //0:   JS_TAG_INT
-        //-1:  JS_TAG_OJBECT 
-        //-2:  JS_TAG_FUNCTION_BYTECODE 
-        //-7:  JS_TAG_STRING
-    #endif
-
     if (JS_VALUE_HAS_REF_COUNT(val)) { 
         switch(JS_VALUE_GET_TAG(val)) {
         case JS_TAG_OBJECT:
@@ -5831,37 +5545,15 @@ void JS_MarkValue(JSRuntime *rt, JSValueConst val, JS_MarkFunc *mark_func)
             break;
         }
     }
-    #ifdef PRINTFREE
-        printf("            6 exit JS_MarkValue\n");
-    #endif
 }
 
 static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
                           JS_MarkFunc *mark_func)
 {
-    #ifdef PRINTFREE
-        printf("        4 enter mark_children\n");
-    #endif
-
     switch(gp->gc_obj_type) {
     case JS_GC_OBJ_TYPE_JS_OBJECT:
         {
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_JS_OBJECT\n");
-                JS_DumpObject(rt,(JSObject *)gp);
-            #endif
-
             JSObject *p = (JSObject *)gp;
-
-            #ifdef PRINTFREE
-                printf("          p->class_id is %d\n",p->class_id);
-                //JS_CLASS_OBJECT 1
-                //JS_CLASS_C_FUNCTION 12
-                //JS_CLASS_BYTECODE_FUNCTION 13
-                if(p->class_id==JS_CLASS_BYTECODE_FUNCTION){
-                    printf("          function line number is %d && function byte code len is %d\n",p->u.func.function_bytecode->debug.line_num,p->u.func.function_bytecode->byte_code_len);
-                }
-            #endif
 
             JSShapeProperty *prs;
             JSShape *sh;
@@ -5871,38 +5563,22 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
             /* mark all the fields */
             prs = get_shape_prop(sh);
 
-            #ifdef PRINTFREE
-                printf("        sh->prop_count is %d\n",sh->prop_count);
-            #endif
-
             for(i = 0; i < sh->prop_count; i++) {
-                #ifdef PRINTFREE
-                    printf("        i is %d\n",i);
-                #endif
                 JSProperty *pr = &p->prop[i];
                 if (prs->atom != JS_ATOM_NULL) {
                     if (prs->flags & JS_PROP_TMASK) {
                         if ((prs->flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
-                            #ifdef PRINTFREE
-                                printf("        JS_PROP_GETSET\n");
-                            #endif
                             if (pr->u.getset.getter)
                                 mark_func(rt, &pr->u.getset.getter->header);
                             if (pr->u.getset.setter)
                                 mark_func(rt, &pr->u.getset.setter->header);
                         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_VARREF) {
-                            #ifdef PRINTFREE
-                                printf("        JS_PROP_VARREF\n");
-                            #endif
                             if (pr->u.var_ref->is_detached) {
                                 /* Note: the tag does not matter
                                    provided it is a GC object */
                                 mark_func(rt, &pr->u.var_ref->header);
                             }
                         } else if ((prs->flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {
-                            #ifdef PRINTFREE
-                                printf("        JS_PROP_AUTOINIT\n");
-                            #endif
                             js_autoinit_mark(rt, pr, mark_func);
                         }
                     } else {
@@ -5925,15 +5601,7 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
     case JS_GC_OBJ_TYPE_FUNCTION_BYTECODE:
         /* the template objects can be part of a cycle */
         {   
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_FUNCTION_BYTECODE\n");
-            #endif
-			
             JSFunctionBytecode *b = (JSFunctionBytecode *)gp;
-
-            #ifdef PRINTFREE
-                printf("          function line number is %d\n",b->debug.line_num);
-            #endif
 
             int i;
 
@@ -5948,9 +5616,6 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
         break;
     case JS_GC_OBJ_TYPE_VAR_REF:
         {
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_VAR_REF\n");
-            #endif
             JSVarRef *var_ref = (JSVarRef *)gp;
             /* only detached variable referenced are taken into account */
             assert(var_ref->is_detached);
@@ -5960,9 +5625,6 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
         break;
     case JS_GC_OBJ_TYPE_ASYNC_FUNCTION:
         {
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_ASYNC_FUNCTION\n");
-            #endif
             JSAsyncFunctionData *s = (JSAsyncFunctionData *)gp;
             if (s->is_active)
                 async_func_mark(rt, &s->func_state, mark_func);
@@ -5972,9 +5634,6 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
         break;
     case JS_GC_OBJ_TYPE_SHAPE:
         {
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_SHAPE\n");
-            #endif
             JSShape *sh = (JSShape *)gp;
             if (sh->proto != NULL) {
                 mark_func(rt, &sh->proto->header);
@@ -5983,9 +5642,6 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
         break;
     case JS_GC_OBJ_TYPE_JS_CONTEXT:
         {
-            #ifdef PRINTFREE
-                printf("          case JS_GC_OBJ_TYPE_JS_CONTEXT\n");
-            #endif
             JSContext *ctx = (JSContext *)gp;
             JS_MarkContext(rt, ctx, mark_func);
         }
@@ -5993,32 +5649,20 @@ static void mark_children(JSRuntime *rt, JSGCObjectHeader *gp,
     default:
         abort();
     }
-    #ifdef PRINTFREE
-        printf("        4 exit mark_children\n");
-    #endif
 }
 
 static void gc_decref_child(JSRuntime *rt, JSGCObjectHeader *p)
 {
-    #ifdef PRINTFREE
-        printf("              enter gc_decref_child && p->ref_count is %d && p address is %p\n",p->ref_count,p);
-    #endif
     assert(p->ref_count > 0);
     p->ref_count--;
     if (p->ref_count == 0 && p->mark == 1) {
         list_del(&p->link);
         list_add_tail(&p->link, &rt->tmp_obj_list);
     }
-    #ifdef PRINTFREE
-        printf("              exit gc_decref_child\n");
-    #endif
 }
 
 static void gc_decref(JSRuntime *rt)
 {
-	#ifdef PRINTFREE
-		printf("      3 enter gc_decref\n");
-	#endif
 
     struct list_head *el, *el1;
     JSGCObjectHeader *p;
@@ -6029,15 +5673,7 @@ static void gc_decref(JSRuntime *rt)
        objects and move the GC objects with zero refcount to
        tmp_obj_list */
     list_for_each_safe(el, el1, &rt->gc_obj_list) {
-        #ifdef PRINTFREE
-            printf("\n      inside gc_decref rt->gc_obj_list\n");
-        #endif
         p = list_entry(el, JSGCObjectHeader, link);
-        #ifdef PRINTFREE
-            printf("      p->ref_count is %d && gc_obj_type is %d && p is %p\n",p->ref_count,p->gc_obj_type,p);
-            //2 : JS_GC_OBJ_TYPE_SHAPE
-            //5 : JS_GC_OBJ_TYPE_JS_CONTEXT
-        #endif
         assert(p->mark == 0);
         mark_children(rt, p, gc_decref_child);
         p->mark = 1;
@@ -6046,18 +5682,10 @@ static void gc_decref(JSRuntime *rt)
             list_add_tail(&p->link, &rt->tmp_obj_list);
         }
     }
-
-	#ifdef PRINTFREE
-		printf("      3 exit gc_decref\n");
-	#endif
-
 }
 
 static void gc_scan_incref_child(JSRuntime *rt, JSGCObjectHeader *p)
 {
-    #ifdef PRINTFREE
-        printf("              7 enter gc_scan_incref_child && p->ref_count is %d\n",p->ref_count);
-    #endif
     p->ref_count++;
     if (p->ref_count == 1) {
         /* ref_count was 0: remove from tmp_obj_list and add at the
@@ -6068,9 +5696,6 @@ static void gc_scan_incref_child(JSRuntime *rt, JSGCObjectHeader *p)
         list_add_tail(&p->link, &rt->gc_obj_list);
         p->mark = 0; /* reset the mark for the next GC call */
     }
-    #ifdef PRINTFREE
-        printf("              7 exit gc_scan_incref_child\n");
-    #endif
 }
 
 static void gc_scan_incref_child2(JSRuntime *rt, JSGCObjectHeader *p)
@@ -6080,22 +5705,12 @@ static void gc_scan_incref_child2(JSRuntime *rt, JSGCObjectHeader *p)
 
 static void gc_scan(JSRuntime *rt)
 {
-	#ifdef PRINTFREE
-		printf("\n      3 enter gc_scan\n");
-	#endif
-
     struct list_head *el;
     JSGCObjectHeader *p;
 
     /* keep the objects with a refcount > 0 and their children. */
     list_for_each(el, &rt->gc_obj_list) {
-        #ifdef PRINTFREE
-            printf("      inside gc_scan rt->gc_obj_list\n");
-        #endif
         p = list_entry(el, JSGCObjectHeader, link);
-        #ifdef PRINTFREE
-            printf("      p->ref_count is %d && gc_obj_type is %d && p is %p\n",p->ref_count,p->gc_obj_type,p);
-        #endif
         assert(p->ref_count > 0);
         p->mark = 0; /* reset the mark for the next GC call */
         mark_children(rt, p, gc_scan_incref_child);
@@ -6103,24 +5718,13 @@ static void gc_scan(JSRuntime *rt)
     
     /* restore the refcount of the objects to be deleted. */
     list_for_each(el, &rt->tmp_obj_list) {
-        #ifdef PRINTFREE
-            printf("      inside gc_scan rt->tmp_obj_list\n");
-        #endif
         p = list_entry(el, JSGCObjectHeader, link);
         mark_children(rt, p, gc_scan_incref_child2);
     }
-
-	#ifdef PRINTFREE
-		printf("      3 exit gc_scan\n");
-	#endif
 }
 
 static void gc_free_cycles(JSRuntime *rt)
 {
-
-    #ifdef PRINTFREE
-		printf("      3 enter gc_free_cycles\n");
-	#endif
     struct list_head *el, *el1;
     JSGCObjectHeader *p;
 #ifdef DUMP_GC_FREE
@@ -6167,17 +5771,10 @@ static void gc_free_cycles(JSRuntime *rt)
 
     init_list_head(&rt->gc_zero_ref_count_list);
 
-    #ifdef PRINTFREE
-		printf("      3 exit gc_free_cycles\n");
-	#endif
 }
 
 void JS_RunGC(JSRuntime *rt)
 {
-    #ifdef PRINTFREE
-        printf("  2 enter JS_RunGC\n");
-    #endif
-
     /* decrement the reference of the children of each object. mark =
        1 after this pass. */
     gc_decref(rt);
@@ -6185,10 +5782,6 @@ void JS_RunGC(JSRuntime *rt)
     gc_scan(rt);
     /* free the GC objects in a cycle */
     gc_free_cycles(rt);
-
-    #ifdef PRINTFREE
-        printf("  2 exit JS_RunGC\n");
-    #endif
 }
 
 /* Return false if not an object or if the object has already been
@@ -8213,9 +7806,6 @@ static JSAtom js_symbol_to_atom(JSContext *ctx, JSValue val)
 /* return JS_ATOM_NULL in case of exception */
 JSAtom JS_ValueToAtom(JSContext *ctx, JSValueConst val)
 {
-    #ifdef PRINTATOM
-        printf("          5 enter JS_ValueToAtom && tag is %d\n",JS_VALUE_GET_TAG(val));
-    #endif
     JSAtom atom;
     uint32_t tag;
     tag = JS_VALUE_GET_TAG(val);
@@ -8237,9 +7827,6 @@ JSAtom JS_ValueToAtom(JSContext *ctx, JSValueConst val)
             atom = JS_NewAtomStr(ctx, JS_VALUE_GET_STRING(str));
         }
     }
-    #ifdef PRINTATOM
-        printf("          5 exit JS_ValueToAtom\n");
-    #endif
     return atom;
 }
 
@@ -19559,10 +19146,6 @@ static __exception int ident_realloc(JSContext *ctx, char **pbuf, size_t *psize,
 static JSAtom parse_ident(JSParseState *s, const uint8_t **pp,
                           BOOL *pident_has_escape, int c, BOOL is_private)
 {
-    #ifdef PRINTATOM
-        printf("  1 enter parse_ident\n");
-    #endif
-
     const uint8_t *p, *p1;
     char ident_buf[128], *buf;
     size_t ident_size, ident_pos;
@@ -19606,20 +19189,11 @@ static JSAtom parse_ident(JSParseState *s, const uint8_t **pp,
         js_free(s->ctx, buf);
     *pp = p;
 
-    #ifdef PRINTATOM
-        printf("  1 exit parse_ident\n");
-    #endif
-
     return atom;
 }
 
 static __exception int next_token(JSParseState *s)
 {
-    
-    #ifdef PRINTATOM
-        printf("0 enter next_token\n");
-    #endif
-    
     const uint8_t *p;
     int c;
     BOOL ident_has_escape;
@@ -19638,15 +19212,6 @@ static __exception int next_token(JSParseState *s)
     s->token.line_num = s->line_num;
     s->token.ptr = p;
     c = *p;
-
-    //一些ASCii值：
-    //  10: '\n'
-    //  32: ' '
-    //  40: '('
-
-    #ifdef PRINTATOM
-        printf("int value of c is %d && char value of c is %c\n",c,c);
-    #endif
 
     switch(c) {
     case 0:
@@ -28002,19 +27567,12 @@ static void free_bytecode_atoms(JSRuntime *rt,
                                 const uint8_t *bc_buf, int bc_len,
                                 BOOL use_short_opcodes)
 {
-    #ifdef PRINTFREE
-        printf("            6 enter free_bytecode_atoms\n");
-    #endif
-
     int pos, len, op;
     JSAtom atom;
     const JSOpCode *oi;
     
     pos = 0;
     
-    #ifdef PRINTFREE
-        printf("            in free_bytecode_atoms while loop\n");
-    #endif
     while (pos < bc_len) {
         op = bc_buf[pos];
         
@@ -28022,12 +27580,6 @@ static void free_bytecode_atoms(JSRuntime *rt,
             oi = &short_opcode_info(op);
         else
             oi = &opcode_info[op];
-
-        #ifdef PRINTFREE
-        #ifdef DUMP_BYTECODE
-            printf("            pos is %d && opcode is %s\n",pos,oi->name);
-        #endif
-        #endif
 
         len = oi->size;
         switch(oi->fmt) {
@@ -28044,9 +27596,6 @@ static void free_bytecode_atoms(JSRuntime *rt,
         }
         pos += len;
     }
-    #ifdef PRINTFREE
-        printf("            6 exit free_bytecode_atoms\n");
-    #endif
 }
 
 static void js_free_function_def(JSContext *ctx, JSFunctionDef *fd)
@@ -30186,9 +29735,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
     //here add the closure_var_count variable
     for (pos = 0; pos < bc_len; pos = pos_next) {
         op = bc_buf[pos];
-        #ifdef PRINTRESOLVEVARIABLES
-            printf("    the pos is %d && the op is %d\n",pos,op);
-        #endif
         len = opcode_info[op].size;
         pos_next = pos + len;
         switch(op) {
@@ -30816,10 +30362,6 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
         op = bc_buf[pos];
         len = opcode_info[op].size;
         pos_next = pos + len;
-
-        #ifdef PRINTRESOLVELABELS
-            printf("    the pos is %d && the op is %d\n",pos,op);
-        #endif
 
         switch(op) {
         case OP_line_num:
@@ -31911,17 +31453,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
         //goto fail;
     }
 
-    #ifdef PRINTSCOPE
-        printf("enter the resolve scope process\n");
-        for (scope = 0; scope < fd->scope_count; scope++) {
-            printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-        }
-        for(idx=0;idx<fd->var_count;idx++){
-            JSVarDef *vd = &fd->vars[idx];
-            printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d && vd->is_captured is %d\n",idx,vd->scope_level,vd->scope_next,vd->is_captured);
-        }
-    #endif
-
     /* recompute scope linkage */
     for (scope = 0; scope < fd->scope_count; scope++) {
         fd->scopes[scope].first = -1;
@@ -31938,17 +31469,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
         vd->scope_next = fd->scopes[vd->scope_level].first;
         fd->scopes[vd->scope_level].first = idx;
     }
-
-    #ifdef PRINTSCOPE
-        printf("after pass 1\n");
-        for (scope = 0; scope < fd->scope_count; scope++) {
-            printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-        }
-        for(idx=0;idx<fd->var_count;idx++){
-            JSVarDef *vd = &fd->vars[idx];
-            printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d\n",idx,vd->scope_level,vd->scope_next);
-        }
-    #endif
     
     //scope bigger than 2 represents the scope inside the function body
     for (scope = 2; scope < fd->scope_count; scope++) {
@@ -31965,17 +31485,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
             vd->scope_next = fd->scopes[scope].first;
         }
     }
-
-    #ifdef PRINTSCOPE
-        printf("final pass\n");
-        for (scope = 0; scope < fd->scope_count; scope++) {
-            printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-        }
-        for(idx=0;idx<fd->var_count;idx++){
-            JSVarDef *vd = &fd->vars[idx];
-            printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d && vd->is_captured is %d\n",idx,vd->scope_level,vd->scope_next,vd->is_captured);
-        }
-    #endif
 
     /* if the function contains an eval call, the closure variables
        are used to compile the eval and they must be ordered by scope,
@@ -32270,17 +31779,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         
     }else{
 
-        #ifdef PRINTSCOPE
-            printf("enter the resolve scope process\n");
-            for (scope = 0; scope < fd->scope_count; scope++) {
-                printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-            }
-            for(idx=0;idx<fd->var_count;idx++){
-                JSVarDef *vd = &fd->vars[idx];
-                printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d && vd->is_captured is %d\n",idx,vd->scope_level,vd->scope_next,vd->is_captured);
-            }
-        #endif
-
         /* recompute scope linkage */
         for (scope = 0; scope < fd->scope_count; scope++) {
             fd->scopes[scope].first = -1;
@@ -32297,17 +31795,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             vd->scope_next = fd->scopes[vd->scope_level].first;
             fd->scopes[vd->scope_level].first = idx;
         }
-
-        #ifdef PRINTSCOPE
-            printf("after pass 1\n");
-            for (scope = 0; scope < fd->scope_count; scope++) {
-                printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-            }
-            for(idx=0;idx<fd->var_count;idx++){
-                JSVarDef *vd = &fd->vars[idx];
-                printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d\n",idx,vd->scope_level,vd->scope_next);
-            }
-        #endif
     
         //scope bigger than 2 represents the scope inside the function body
         for (scope = 2; scope < fd->scope_count; scope++) {
@@ -32324,18 +31811,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
                 vd->scope_next = fd->scopes[scope].first;
             }
         }
-
-        #ifdef PRINTSCOPE
-            printf("final pass\n");
-            for (scope = 0; scope < fd->scope_count; scope++) {
-                printf("scope is %d && scope first is %d\n",scope,fd->scopes[scope].first);
-            }
-            for(idx=0;idx<fd->var_count;idx++){
-                JSVarDef *vd = &fd->vars[idx];
-                printf("idx is %d && vd->scope_level is %d && vd->scope_next is %d && vd->is_captured is %d\n",idx,vd->scope_level,vd->scope_next,vd->is_captured);
-            }
-        #endif
-
     /* if the function contains an eval call, the closure variables
        are used to compile the eval and they must be ordered by scope,
        so it is necessary to create the closure variables before any
@@ -32592,57 +32067,29 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
 static void free_function_bytecode(JSRuntime *rt, JSFunctionBytecode *b)
 {   
 
-    #ifdef PRINTFREE
-        printf("          5 enter free_function_bytecode && function line number is %d\n",b->debug.line_num);
-    #endif
-
     int i;
 
     free_bytecode_atoms(rt, b->byte_code_buf, b->byte_code_len, TRUE);
 
     if (b->vardefs) {
         for(i = 0; i < b->arg_count + b->var_count; i++) {
-            #ifdef PRINTFREE
-                printf("          free b->vardefs && i is %d\n",i);
-            #endif
             JS_FreeAtomRT(rt, b->vardefs[i].var_name);
         }
     }
-    for(i = 0; i < b->cpool_count; i++){
-        #ifdef PRINTFREE
-            printf("          free b->cpool_count && i is %d\n",i); 
-            if(JS_VALUE_GET_TAG(b->cpool[i])==JS_TAG_FUNCTION_BYTECODE){
-                JSFunctionBytecode *tmp=(JSFunctionBytecode *)JS_VALUE_GET_PTR(b->cpool[i]);
-                printf("          line number is %d\n",tmp->debug.line_num);
-                printf("          function byte code length is %d\n",tmp->byte_code_len);
-            }
-        #endif      
+    for(i = 0; i < b->cpool_count; i++){    
         JS_FreeValueRT(rt, b->cpool[i]);
     }
         
 
     for(i = 0; i < b->closure_var_count; i++) {
-        #ifdef PRINTFREE
-            printf("          free b->closure_var && i is %d\n",i);
-        #endif
         JSClosureVar *cv = &b->closure_var[i];
         JS_FreeAtomRT(rt, cv->var_name);
     }
     if (b->realm){
-        #ifdef PRINTFREE
-            printf("          free b->realm && i is %d\n",i);
-        #endif
         JS_FreeContext(b->realm);
     }
-
-    #ifdef PRINTFREE
-        printf("          free b->func_name\n");
-    #endif
     JS_FreeAtomRT(rt, b->func_name);
     if (b->has_debug) {
-        #ifdef PRINTFREE
-            printf("          case b->has_debug\n");
-        #endif
         JS_FreeAtomRT(rt, b->debug.filename);
         rt->mf.js_free(&rt->malloc_state, b->debug.pc2line_buf);
         rt->mf.js_free(&rt->malloc_state, b->debug.source);
@@ -32654,9 +32101,6 @@ static void free_function_bytecode(JSRuntime *rt, JSFunctionBytecode *b)
     } else {
         rt->mf.js_free(&rt->malloc_state, b);
     }
-    #ifdef PRINTFREE
-        printf("          5 exit free_function_bytecode\n");
-    #endif
 }
 
 static __exception int js_parse_directives(JSParseState *s)
