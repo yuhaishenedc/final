@@ -48,8 +48,6 @@
 
 #define OPTIMIZE         1
 #define SHORT_OPCODES    1
-// here originally defined Emscripten,
-// but it seems we do not need this support
 
 #if defined(__APPLE__)
 #define MALLOC_OVERHEAD  0
@@ -537,7 +535,7 @@ typedef struct JSFunctionBytecode {
     uint8_t arguments_allowed : 1;
     uint8_t has_debug : 1;
     uint8_t backtrace_barrier : 1; /* stop backtrace on this function */
-    uint8_t read_only_bytecode : 1;  //这个值在哪里进行设置
+    uint8_t read_only_bytecode : 1;
     /* XXX: 4 bits available */
     uint8_t *byte_code_buf; /* (self pointer) */
     int byte_code_len;
@@ -548,13 +546,13 @@ typedef struct JSFunctionBytecode {
     uint16_t var_count;
     uint16_t defined_arg_count; /* for length function property */
     uint16_t stack_size; /* maximum stack size */
-    JSContext *realm; /* function realm */      //在预解析和全量解析时候复用这个值
+    JSContext *realm; /* function realm */  
     JSValue *cpool; /* constant pool (self pointer) */
     int cpool_count;
     int closure_var_count;
     #ifdef PREPARSER
         void *preparse_fd;
-        int preparse_flag;  //这个值为1时代表直到堆栈执行到这个函数前，执行的都是预解析  
+        int preparse_flag; 
         void *parent;
         int parent_cpool_idx;
         void* var_refs;
@@ -562,7 +560,6 @@ typedef struct JSFunctionBytecode {
         void *sf;
         void *parent_p;
         int line_num;
-        const char *strfilename;
     #endif
     struct {
         /* debug info, move to separate structure to save memory? */
@@ -13058,7 +13055,6 @@ typedef struct JSFunctionDef {
         int line_num;
         char *ptr;
     }token;
-    char *strfilename;
     JSFunctionBytecode *reparse_bytecode;
 #endif
 
@@ -30319,9 +30315,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     s->last_line_num=fd->reparse_pos.last_line_num;
     s->line_num=fd->reparse_pos.line_num;
 
-    //when execute js_parse_source_element, the string form of filename is needed
-    s->filename=fd->strfilename;
-
     s->token.val=fd->token.val;
     s->token.line_num=fd->token.line_num;
     s->token.ptr=(const uint8_t *)fd->token.ptr;
@@ -30635,7 +30628,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         b->preparse_flag=1;
 
         b->line_num=fd->line_num;
-        b->strfilename=fd->strfilename;
 
         //在JS_WriteFunctionBytecode函数中如果没有大于零的长度的话会报错，这里使用1的长度进行占位
         b->byte_code_len=1;
@@ -30850,7 +30842,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         }
 
         b->line_num=fd->line_num;
-        b->strfilename=fd->strfilename;
             
         //here fd->scopes cannot be freed
         //if (fd->scopes != fd->def_scope_array)
@@ -31298,11 +31289,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
 
     if (pfd)
         *pfd = fd;
-
-    fd->strfilename=(char*)malloc(strlen(s->filename)+1);
-    strcpy(fd->strfilename,s->filename);
-
-    //fd->strfilename=s->filename;
 
     //preparser
     if(fd->total_scope_level>=2 && func_type!=6 && func_type!=4 && s->getset!=9577 ){
