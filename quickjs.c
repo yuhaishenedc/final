@@ -10087,6 +10087,14 @@ done:
     goto done;
 }
 
+#ifdef CONFIG_BIGNUM
+static JSValue js_atof(JSContext *ctx, const char *str, const char **pp,
+                       int radix, int flags)
+{
+    return js_atof2(ctx, str, pp, radix, flags, NULL);
+}
+#endif
+
 typedef enum JSToNumberHintEnum {
     TON_FLAG_NUMBER,
     TON_FLAG_NUMERIC,
@@ -10101,6 +10109,29 @@ static JSValue JS_ToNumberHintFree(JSContext *ctx, JSValue val,
  redo:
     tag = JS_VALUE_GET_NORM_TAG(val);
     switch(tag) {
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_DECIMAL:
+        if (flag != TON_FLAG_NUMERIC) {
+            JS_FreeValue(ctx, val);
+            return JS_ThrowTypeError(ctx, "cannot convert bigdecimal to number");
+        }
+        ret = val;
+        break;
+    case JS_TAG_BIG_INT:
+        if (flag != TON_FLAG_NUMERIC) {
+            JS_FreeValue(ctx, val);
+            return JS_ThrowTypeError(ctx, "cannot convert bigint to number");
+        }
+        ret = val;
+        break;
+    case JS_TAG_BIG_FLOAT:
+        if (flag != TON_FLAG_NUMERIC) {
+            JS_FreeValue(ctx, val);
+            return JS_ThrowTypeError(ctx, "cannot convert bigfloat to number");
+        }
+        ret = val;
+        break;
+#endif
     case JS_TAG_FLOAT64:
     case JS_TAG_INT:
     case JS_TAG_EXCEPTION:
@@ -10191,6 +10222,19 @@ static __exception int __JS_ToFloat64Free(JSContext *ctx, double *pres,
     case JS_TAG_FLOAT64:
         d = JS_VALUE_GET_FLOAT64(val);
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_INT:
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            /* XXX: there can be a double rounding issue with some
+               primitives (such as JS_ToUint8ClampFree()), but it is
+               not critical to fix it. */
+            bf_get_float64(&p->num, &d, BF_RNDN);
+            JS_FreeValue(ctx, val);
+        }
+        break;
+#endif
     default:
         abort();
     }
@@ -10251,6 +10295,34 @@ static __maybe_unused JSValue JS_ToIntegerFree(JSContext *ctx, JSValue val)
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            bf_t a_s, *a, r_s, *r = &r_s;
+            BOOL is_nan;
+
+            a = JS_ToBigFloat(ctx, &a_s, val);
+            if (!bf_is_finite(a)) {
+                is_nan = bf_is_nan(a);
+                if (is_nan)
+                    ret = JS_NewInt32(ctx, 0);
+                else
+                    ret = JS_DupValue(ctx, val);
+            } else {
+                ret = JS_NewBigInt(ctx);
+                if (!JS_IsException(ret)) {
+                    r = JS_GetBigInt(ret);
+                    bf_set(r, a);
+                    bf_rint(r, BF_RNDZ);
+                    ret = JS_CompactBigInt(ctx, ret);
+                }
+            }
+            if (a == &a_s)
+                bf_delete(a);
+            JS_FreeValue(ctx, val);
+        }
+        break;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val))
@@ -10293,6 +10365,15 @@ static int JS_ToInt32SatFree(JSContext *ctx, int *pres, JSValue val)
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_get_int32(&ret, &p->num, 0);
+            JS_FreeValue(ctx, val);
+        }
+        break;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val)) {
@@ -10358,6 +10439,15 @@ static int JS_ToInt64SatFree(JSContext *ctx, int64_t *pres, JSValue val)
             }
         }
         return 0;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_get_int64(pres, &p->num, 0);
+            JS_FreeValue(ctx, val);
+        }
+        return 0;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val)) {
@@ -10429,6 +10519,15 @@ static int JS_ToInt64Free(JSContext *ctx, int64_t *pres, JSValue val)
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_get_int64(&ret, &p->num, BF_GET_INT_MOD);
+            JS_FreeValue(ctx, val);
+        }
+        break;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val)) {
@@ -10495,6 +10594,15 @@ static int JS_ToInt32Free(JSContext *ctx, int32_t *pres, JSValue val)
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_get_int32(&ret, &p->num, BF_GET_INT_MOD);
+            JS_FreeValue(ctx, val);
+        }
+        break;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val)) {
@@ -10530,6 +10638,9 @@ static int JS_ToUint8ClampFree(JSContext *ctx, int32_t *pres, JSValue val)
     case JS_TAG_NULL:
     case JS_TAG_UNDEFINED:
         res = JS_VALUE_GET_INT(val);
+#ifdef CONFIG_BIGNUM
+    int_clamp:
+#endif
         res = max_int(0, min_int(255, res));
         break;
     case JS_TAG_FLOAT64:
@@ -10547,6 +10658,20 @@ static int JS_ToUint8ClampFree(JSContext *ctx, int32_t *pres, JSValue val)
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_t r_s, *r = &r_s;
+            bf_init(ctx->bf_ctx, r);
+            bf_set(r, &p->num);
+            bf_rint(r, BF_RNDN);
+            bf_get_int32(&res, r, 0);
+            bf_delete(r);
+            JS_FreeValue(ctx, val);
+        }
+        goto int_clamp;
+#endif
     default:
         val = JS_ToNumberFree(ctx, val);
         if (JS_IsException(val)) {
@@ -10577,6 +10702,24 @@ static __exception int JS_ToArrayLengthFree(JSContext *ctx, uint32_t *plen,
             len = v;
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_INT:
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            bf_t a;
+            BOOL res;
+            bf_get_int32((int32_t *)&len, &p->num, BF_GET_INT_MOD);
+            bf_init(ctx->bf_ctx, &a);
+            bf_set_ui(&a, len);
+            res = bf_cmp_eq(&a, &p->num);
+            bf_delete(&a);
+            JS_FreeValue(ctx, val);
+            if (!res)
+                goto fail;
+        }
+        break;
+#endif
     default:
         if (JS_TAG_IS_FLOAT64(tag)) {
             double d;
@@ -10680,10 +10823,149 @@ static BOOL JS_NumberIsNegativeOrMinusZero(JSContext *ctx, JSValueConst val)
             u.d = JS_VALUE_GET_FLOAT64(val);
             return (u.u64 >> 63);
         }
+#ifdef CONFIG_BIGNUM
+    case JS_TAG_BIG_INT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            /* Note: integer zeros are not necessarily positive */
+            return p->num.sign && !bf_is_zero(&p->num);
+        }
+    case JS_TAG_BIG_FLOAT:
+        {
+            JSBigFloat *p = JS_VALUE_GET_PTR(val);
+            return p->num.sign;
+        }
+        break;
+    case JS_TAG_BIG_DECIMAL:
+        {
+            JSBigDecimal *p = JS_VALUE_GET_PTR(val);
+            return p->num.sign;
+        }
+        break;
+#endif
     default:
         return FALSE;
     }
 }
+
+#ifdef CONFIG_BIGNUM
+
+static JSValue js_bigint_to_string1(JSContext *ctx, JSValueConst val, int radix)
+{
+    JSValue ret;
+    bf_t a_s, *a;
+    char *str;
+    int saved_sign;
+
+    a = JS_ToBigInt(ctx, &a_s, val);
+    if (!a)
+        return JS_EXCEPTION;
+    saved_sign = a->sign;
+    if (a->expn == BF_EXP_ZERO)
+        a->sign = 0;
+    str = bf_ftoa(NULL, a, radix, 0, BF_RNDZ | BF_FTOA_FORMAT_FRAC |
+                  BF_FTOA_JS_QUIRKS);
+    a->sign = saved_sign;
+    JS_FreeBigInt(ctx, a, &a_s);
+    if (!str)
+        return JS_ThrowOutOfMemory(ctx);
+    ret = JS_NewString(ctx, str);
+    bf_free(ctx->bf_ctx, str);
+    return ret;
+}
+
+static JSValue js_bigint_to_string(JSContext *ctx, JSValueConst val)
+{
+    return js_bigint_to_string1(ctx, val, 10);
+}
+
+static JSValue js_ftoa(JSContext *ctx, JSValueConst val1, int radix,
+                       limb_t prec, bf_flags_t flags)
+{
+    JSValue val, ret;
+    bf_t a_s, *a;
+    char *str;
+    int saved_sign;
+
+    val = JS_ToNumeric(ctx, val1);
+    if (JS_IsException(val))
+        return val;
+    a = JS_ToBigFloat(ctx, &a_s, val);
+    saved_sign = a->sign;
+    if (a->expn == BF_EXP_ZERO)
+        a->sign = 0;
+    flags |= BF_FTOA_JS_QUIRKS;
+    if ((flags & BF_FTOA_FORMAT_MASK) == BF_FTOA_FORMAT_FREE_MIN) {
+        /* Note: for floating point numbers with a radix which is not
+           a power of two, the current precision is used to compute
+           the number of digits. */
+        if ((radix & (radix - 1)) != 0) {
+            bf_t r_s, *r = &r_s;
+            int prec, flags1;
+            /* must round first */
+            if (JS_VALUE_GET_TAG(val) == JS_TAG_BIG_FLOAT) {
+                prec = ctx->fp_env.prec;
+                flags1 = ctx->fp_env.flags &
+                    (BF_FLAG_SUBNORMAL | (BF_EXP_BITS_MASK << BF_EXP_BITS_SHIFT));
+            } else {
+                prec = 53;
+                flags1 = bf_set_exp_bits(11) | BF_FLAG_SUBNORMAL;
+            }
+            bf_init(ctx->bf_ctx, r);
+            bf_set(r, a);
+            bf_round(r, prec, flags1 | BF_RNDN);
+            str = bf_ftoa(NULL, r, radix, prec, flags1 | flags);
+            bf_delete(r);
+        } else {
+            str = bf_ftoa(NULL, a, radix, BF_PREC_INF, flags);
+        }
+    } else {
+        str = bf_ftoa(NULL, a, radix, prec, flags);
+    }
+    a->sign = saved_sign;
+    if (a == &a_s)
+        bf_delete(a);
+    JS_FreeValue(ctx, val);
+    if (!str)
+        return JS_ThrowOutOfMemory(ctx);
+    ret = JS_NewString(ctx, str);
+    bf_free(ctx->bf_ctx, str);
+    return ret;
+}
+
+static JSValue js_bigfloat_to_string(JSContext *ctx, JSValueConst val)
+{
+    return js_ftoa(ctx, val, 10, 0, BF_RNDN | BF_FTOA_FORMAT_FREE_MIN);
+}
+
+static JSValue js_bigdecimal_to_string1(JSContext *ctx, JSValueConst val,
+                                        limb_t prec, int flags)
+{
+    JSValue ret;
+    bfdec_t *a;
+    char *str;
+    int saved_sign;
+
+    a = JS_ToBigDecimal(ctx, val);
+    saved_sign = a->sign;
+    if (a->expn == BF_EXP_ZERO)
+        a->sign = 0;
+    str = bfdec_ftoa(NULL, a, prec, flags | BF_FTOA_JS_QUIRKS);
+    a->sign = saved_sign;
+    if (!str)
+        return JS_ThrowOutOfMemory(ctx);
+    ret = JS_NewString(ctx, str);
+    bf_free(ctx->bf_ctx, str);
+    return ret;
+}
+
+static JSValue js_bigdecimal_to_string(JSContext *ctx, JSValueConst val)
+{
+    return js_bigdecimal_to_string1(ctx, val, 0,
+                                    BF_RNDZ | BF_FTOA_FORMAT_FREE);
+}
+
+#endif /* CONFIG_BIGNUM */
 
 /* 2 <= base <= 36 */
 static char *i64toa(char *buf_end, int64_t n, unsigned int base)
