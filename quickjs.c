@@ -45,6 +45,9 @@
 #include "list.h"
 #include "quickjs.h"
 #include "libregexp.h"
+#ifdef CONFIG_BIGNUM
+#include "libbf.h"
+#endif
 
 #define OPTIMIZE         1
 #define SHORT_OPCODES    1
@@ -1052,6 +1055,11 @@ static void js_promise_mark(JSRuntime *rt, JSValueConst val,
 static void js_promise_resolve_function_finalizer(JSRuntime *rt, JSValue val);
 static void js_promise_resolve_function_mark(JSRuntime *rt, JSValueConst val,
                                 JS_MarkFunc *mark_func);
+#ifdef CONFIG_BIGNUM
+static void js_operator_set_finalizer(JSRuntime *rt, JSValue val);
+static void js_operator_set_mark(JSRuntime *rt, JSValueConst val,
+                                 JS_MarkFunc *mark_func);
+#endif
 static JSValue JS_ToStringFree(JSContext *ctx, JSValue val);
 static int JS_ToBoolFree(JSContext *ctx, JSValue val);
 static int JS_ToInt32Free(JSContext *ctx, int32_t *pres, JSValue val);
@@ -1080,6 +1088,37 @@ static JSValue JS_ToObject(JSContext *ctx, JSValueConst val);
 static JSValue JS_ToObjectFree(JSContext *ctx, JSValue val);
 static JSProperty *add_property(JSContext *ctx,
                                 JSObject *p, JSAtom prop, int prop_flags);
+#ifdef CONFIG_BIGNUM
+static void js_float_env_finalizer(JSRuntime *rt, JSValue val);
+static JSValue JS_NewBigFloat(JSContext *ctx);
+static inline bf_t *JS_GetBigFloat(JSValueConst val)
+{
+    JSBigFloat *p = JS_VALUE_GET_PTR(val);
+    return &p->num;
+}
+static JSValue JS_NewBigDecimal(JSContext *ctx);
+static inline bfdec_t *JS_GetBigDecimal(JSValueConst val)
+{
+    JSBigDecimal *p = JS_VALUE_GET_PTR(val);
+    return &p->num;
+}
+static JSValue JS_NewBigInt(JSContext *ctx);
+static inline bf_t *JS_GetBigInt(JSValueConst val)
+{
+    JSBigFloat *p = JS_VALUE_GET_PTR(val);
+    return &p->num;
+}
+static JSValue JS_CompactBigInt1(JSContext *ctx, JSValue val,
+                                 BOOL convert_to_safe_integer);
+static JSValue JS_CompactBigInt(JSContext *ctx, JSValue val);
+static int JS_ToBigInt64Free(JSContext *ctx, int64_t *pres, JSValue val);
+static bf_t *JS_ToBigInt(JSContext *ctx, bf_t *buf, JSValueConst val);
+static void JS_FreeBigInt(JSContext *ctx, bf_t *a, bf_t *buf);
+static bf_t *JS_ToBigFloat(JSContext *ctx, bf_t *buf, JSValueConst val);
+static JSValue JS_ToBigDecimalFree(JSContext *ctx, JSValue val,
+                                   BOOL allow_null_or_undefined);
+static bfdec_t *JS_ToBigDecimal(JSContext *ctx, JSValueConst val);
+#endif
 JSValue JS_ThrowOutOfMemory(JSContext *ctx);
 static JSValue JS_ThrowTypeErrorRevokedProxy(JSContext *ctx);
 static JSValue js_proxy_getPrototypeOf(JSContext *ctx, JSValueConst obj);
@@ -9880,8 +9919,13 @@ static double js_strtod(const char *p, int radix, BOOL is_float)
 
 /* return an exception in case of memory error. Return JS_NAN if
    invalid syntax */
+#ifdef CONFIG_BIGNUM
+static JSValue js_atof2(JSContext *ctx, const char *str, const char **pp,
+                        int radix, int flags, slimb_t *pexponent)
+#else
 static JSValue js_atof(JSContext *ctx, const char *str, const char **pp,
                        int radix, int flags)
+#endif
 {
     const char *p, *p_start;
     int sep, is_neg;
@@ -32684,7 +32728,11 @@ typedef enum BCTagEnum {
     BC_TAG_OBJECT_REFERENCE,
 } BCTagEnum;
 
+#ifdef CONFIG_BIGNUM
+#define BC_BASE_VERSION 2
+#else
 #define BC_BASE_VERSION 1
+#endif
 #define BC_BE_VERSION 0x40
 #ifdef WORDS_BIGENDIAN
 #define BC_VERSION (BC_BASE_VERSION | BC_BE_VERSION)
@@ -48396,6 +48444,12 @@ static JSValue js_typed_array_fill(JSContext *ctx, JSValueConst this_val,
             return JS_EXCEPTION;
         v64 = v;
     } else
+#ifdef CONFIG_BIGNUM
+    if (p->class_id <= JS_CLASS_BIG_UINT64_ARRAY) {
+        if (JS_ToBigInt64(ctx, (int64_t *)&v64, argv[0]))
+            return JS_EXCEPTION;
+    } else
+#endif
     {
         double d;
         if (JS_ToFloat64(ctx, &d, argv[0]))
@@ -48584,6 +48638,23 @@ static JSValue js_typed_array_indexOf(JSContext *ctx, JSValueConst this_val,
         v64 = d;
         is_int = (v64 == d);
     } else
+#ifdef CONFIG_BIGNUM
+    if (tag == JS_TAG_BIG_INT) {
+        JSBigFloat *p1 = JS_VALUE_GET_PTR(argv[0]);
+
+        if (p->class_id == JS_CLASS_BIG_INT64_ARRAY) {
+            if (bf_get_int64(&v64, &p1->num, 0) != 0)
+                goto done;
+        } else if (p->class_id == JS_CLASS_BIG_UINT64_ARRAY) {
+            if (bf_get_uint64((uint64_t *)&v64, &p1->num) != 0)
+                goto done;
+        } else {
+            goto done;
+        }
+        d = 0;
+        is_bigint = 1;
+    } else
+#endif
     {
         goto done;
     }
@@ -48701,6 +48772,31 @@ static JSValue js_typed_array_indexOf(JSContext *ctx, JSValueConst this_val,
             }
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_CLASS_BIG_INT64_ARRAY:
+        if (is_bigint || (is_math_mode(ctx) && is_int &&
+                          v64 >= -MAX_SAFE_INTEGER &&
+                          v64 <= MAX_SAFE_INTEGER)) {
+            goto scan64;
+        }
+        break;
+    case JS_CLASS_BIG_UINT64_ARRAY:
+        if (is_bigint || (is_math_mode(ctx) && is_int &&
+                          v64 >= 0 && v64 <= MAX_SAFE_INTEGER)) {
+            const uint64_t *pv;
+            uint64_t v;
+        scan64:
+            pv = p->u.array.u.uint64_ptr;
+            v = v64;
+            for (; k != stop; k += inc) {
+                if (pv[k] == v) {
+                    res = k;
+                    break;
+                }
+            }
+        }
+        break;
+#endif
     }
 
 done:
@@ -48981,6 +49077,20 @@ static int js_TA_cmp_uint32(const void *a, const void *b, void *opaque) {
     return (y < x) - (y > x);
 }
 
+#ifdef CONFIG_BIGNUM
+static int js_TA_cmp_int64(const void *a, const void *b, void *opaque) {
+    int64_t x = *(const int64_t *)a;
+    int64_t y = *(const int64_t *)b;
+    return (y < x) - (y > x);
+}
+
+static int js_TA_cmp_uint64(const void *a, const void *b, void *opaque) {
+    uint64_t x = *(const uint64_t *)a;
+    uint64_t y = *(const uint64_t *)b;
+    return (y < x) - (y > x);
+}
+#endif
+
 static int js_TA_cmp_float32(const void *a, const void *b, void *opaque) {
     return js_cmp_doubles(*(const float *)a, *(const float *)b);
 }
@@ -49012,6 +49122,16 @@ static JSValue js_TA_get_int32(JSContext *ctx, const void *a) {
 static JSValue js_TA_get_uint32(JSContext *ctx, const void *a) {
     return JS_NewUint32(ctx, *(const uint32_t *)a);
 }
+
+#ifdef CONFIG_BIGNUM
+static JSValue js_TA_get_int64(JSContext *ctx, const void *a) {
+    return JS_NewBigInt64(ctx, *(int64_t *)a);
+}
+
+static JSValue js_TA_get_uint64(JSContext *ctx, const void *a) {
+    return JS_NewBigUint64(ctx, *(uint64_t *)a);
+}
+#endif
 
 static JSValue js_TA_get_float32(JSContext *ctx, const void *a) {
     return __JS_NewFloat64(ctx, *(const float *)a);
@@ -49127,6 +49247,16 @@ static JSValue js_typed_array_sort(JSContext *ctx, JSValueConst this_val,
             tsc.getfun = js_TA_get_uint32;
             cmpfun = js_TA_cmp_uint32;
             break;
+#ifdef CONFIG_BIGNUM
+        case JS_CLASS_BIG_INT64_ARRAY:
+            tsc.getfun = js_TA_get_int64;
+            cmpfun = js_TA_cmp_int64;
+            break;
+        case JS_CLASS_BIG_UINT64_ARRAY:
+            tsc.getfun = js_TA_get_uint64;
+            cmpfun = js_TA_cmp_uint64;
+            break;
+#endif
         case JS_CLASS_FLOAT32_ARRAY:
             tsc.getfun = js_TA_get_float32;
             cmpfun = js_TA_cmp_float32;
@@ -49651,6 +49781,26 @@ static JSValue js_dataview_getValue(JSContext *ctx,
         if (is_swap)
             v = bswap32(v);
         return JS_NewUint32(ctx, v);
+#ifdef CONFIG_BIGNUM
+    case JS_CLASS_BIG_INT64_ARRAY:
+        {
+            uint64_t v;
+            v = get_u64(ptr);
+            if (is_swap)
+                v = bswap64(v);
+            return JS_NewBigInt64(ctx, v);
+        }
+        break;
+    case JS_CLASS_BIG_UINT64_ARRAY:
+        {
+            uint64_t v;
+            v = get_u64(ptr);
+            if (is_swap)
+                v = bswap64(v);
+            return JS_NewBigUint64(ctx, v);
+        }
+        break;
+#endif
     case JS_CLASS_FLOAT32_ARRAY:
         {
             union {
@@ -49705,6 +49855,12 @@ static JSValue js_dataview_setValue(JSContext *ctx,
         if (JS_ToUint32(ctx, &v, val))
             return JS_EXCEPTION;
     } else
+#ifdef CONFIG_BIGNUM
+    if (class_id <= JS_CLASS_BIG_UINT64_ARRAY) {
+        if (JS_ToBigInt64(ctx, (int64_t *)&v64, val))
+            return JS_EXCEPTION;
+    } else
+#endif
     {
         double d;
         if (JS_ToFloat64(ctx, &d, val))
@@ -49753,6 +49909,10 @@ static JSValue js_dataview_setValue(JSContext *ctx,
             v = bswap32(v);
         put_u32(ptr, v);
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_CLASS_BIG_INT64_ARRAY:
+    case JS_CLASS_BIG_UINT64_ARRAY:
+#endif
     case JS_CLASS_FLOAT64_ARRAY:
         if (is_swap)
             v64 = bswap64(v64);
@@ -49774,6 +49934,10 @@ static const JSCFunctionListEntry js_dataview_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("getUint16", 1, js_dataview_getValue, JS_CLASS_UINT16_ARRAY ),
     JS_CFUNC_MAGIC_DEF("getInt32", 1, js_dataview_getValue, JS_CLASS_INT32_ARRAY ),
     JS_CFUNC_MAGIC_DEF("getUint32", 1, js_dataview_getValue, JS_CLASS_UINT32_ARRAY ),
+#ifdef CONFIG_BIGNUM
+    JS_CFUNC_MAGIC_DEF("getBigInt64", 1, js_dataview_getValue, JS_CLASS_BIG_INT64_ARRAY ),
+    JS_CFUNC_MAGIC_DEF("getBigUint64", 1, js_dataview_getValue, JS_CLASS_BIG_UINT64_ARRAY ),
+#endif
     JS_CFUNC_MAGIC_DEF("getFloat32", 1, js_dataview_getValue, JS_CLASS_FLOAT32_ARRAY ),
     JS_CFUNC_MAGIC_DEF("getFloat64", 1, js_dataview_getValue, JS_CLASS_FLOAT64_ARRAY ),
     JS_CFUNC_MAGIC_DEF("setInt8", 2, js_dataview_setValue, JS_CLASS_INT8_ARRAY ),
@@ -49782,6 +49946,10 @@ static const JSCFunctionListEntry js_dataview_proto_funcs[] = {
     JS_CFUNC_MAGIC_DEF("setUint16", 2, js_dataview_setValue, JS_CLASS_UINT16_ARRAY ),
     JS_CFUNC_MAGIC_DEF("setInt32", 2, js_dataview_setValue, JS_CLASS_INT32_ARRAY ),
     JS_CFUNC_MAGIC_DEF("setUint32", 2, js_dataview_setValue, JS_CLASS_UINT32_ARRAY ),
+#ifdef CONFIG_BIGNUM
+    JS_CFUNC_MAGIC_DEF("setBigInt64", 2, js_dataview_setValue, JS_CLASS_BIG_INT64_ARRAY ),
+    JS_CFUNC_MAGIC_DEF("setBigUint64", 2, js_dataview_setValue, JS_CLASS_BIG_UINT64_ARRAY ),
+#endif
     JS_CFUNC_MAGIC_DEF("setFloat32", 2, js_dataview_setValue, JS_CLASS_FLOAT32_ARRAY ),
     JS_CFUNC_MAGIC_DEF("setFloat64", 2, js_dataview_setValue, JS_CLASS_FLOAT64_ARRAY ),
     JS_PROP_STRING_DEF("[Symbol.toStringTag]", "DataView", JS_PROP_CONFIGURABLE ),
@@ -49818,11 +49986,20 @@ static void *js_atomics_get_ptr(JSContext *ctx,
     if (JS_VALUE_GET_TAG(obj) != JS_TAG_OBJECT)
         goto fail;
     p = JS_VALUE_GET_OBJ(obj);
+#ifdef CONFIG_BIGNUM
+    if (is_waitable)
+        err = (p->class_id != JS_CLASS_INT32_ARRAY &&
+               p->class_id != JS_CLASS_BIG_INT64_ARRAY);
+    else
+        err = !(p->class_id >= JS_CLASS_INT8_ARRAY &&
+                p->class_id <= JS_CLASS_BIG_UINT64_ARRAY);
+#else
     if (is_waitable)
         err = (p->class_id != JS_CLASS_INT32_ARRAY);
     else
         err = !(p->class_id >= JS_CLASS_INT8_ARRAY &&
                 p->class_id <= JS_CLASS_UINT32_ARRAY);
+#endif
     if (err) {
     fail:
         JS_ThrowTypeError(ctx, "integer TypedArray expected");
@@ -49864,7 +50041,11 @@ static JSValue js_atomics_op(JSContext *ctx,
                              int argc, JSValueConst *argv, int op)
 {
     int size_log2;
+#ifdef CONFIG_BIGNUM
+    uint64_t v, a, rep_val;
+#else
     uint32_t v, a, rep_val;
+#endif
     void *ptr;
     JSValue ret;
     JSClassID class_id;
@@ -49878,6 +50059,19 @@ static JSValue js_atomics_op(JSContext *ctx,
     if (op == ATOMICS_OP_LOAD) {
         v = 0;
     } else {
+#ifdef CONFIG_BIGNUM
+        if (size_log2 == 3) {
+            int64_t v64;
+            if (JS_ToBigInt64(ctx, &v64, argv[2]))
+                return JS_EXCEPTION;
+            v = v64;
+            if (op == ATOMICS_OP_COMPARE_EXCHANGE) {
+                if (JS_ToBigInt64(ctx, &v64, argv[3]))
+                    return JS_EXCEPTION;
+                rep_val = v64;
+            }
+        } else
+#endif
         {
                 uint32_t v32;
                 if (JS_ToUint32(ctx, &v32, argv[2]))
@@ -49894,7 +50088,21 @@ static JSValue js_atomics_op(JSContext *ctx,
    }
 
    switch(op | (size_log2 << 3)) {
-            
+#ifdef CONFIG_BIGNUM
+#define OP(op_name, func_name)                          \
+    case ATOMICS_OP_ ## op_name | (0 << 3):             \
+       a = func_name((_Atomic(uint8_t) *)ptr, v);       \
+       break;                                           \
+    case ATOMICS_OP_ ## op_name | (1 << 3):             \
+        a = func_name((_Atomic(uint16_t) *)ptr, v);     \
+        break;                                          \
+    case ATOMICS_OP_ ## op_name | (2 << 3):             \
+        a = func_name((_Atomic(uint32_t) *)ptr, v);     \
+        break;                                          \
+    case ATOMICS_OP_ ## op_name | (3 << 3):             \
+        a = func_name((_Atomic(uint64_t) *)ptr, v);     \
+        break;
+#else
 #define OP(op_name, func_name)                          \
     case ATOMICS_OP_ ## op_name | (0 << 3):             \
        a = func_name((_Atomic(uint8_t) *)ptr, v);       \
@@ -49905,6 +50113,7 @@ static JSValue js_atomics_op(JSContext *ctx,
     case ATOMICS_OP_ ## op_name | (2 << 3):             \
         a = func_name((_Atomic(uint32_t) *)ptr, v);     \
         break;
+#endif
         OP(ADD, atomic_fetch_add)
         OP(AND, atomic_fetch_and)
         OP(OR, atomic_fetch_or)
@@ -49922,6 +50131,11 @@ static JSValue js_atomics_op(JSContext *ctx,
     case ATOMICS_OP_LOAD | (2 << 3):
         a = atomic_load((_Atomic(uint32_t) *)ptr);
         break;
+#ifdef CONFIG_BIGNUM
+    case ATOMICS_OP_LOAD | (3 << 3):
+        a = atomic_load((_Atomic(uint64_t) *)ptr);
+        break;
+#endif
         
     case ATOMICS_OP_COMPARE_EXCHANGE | (0 << 3):
         {
@@ -49944,6 +50158,15 @@ static JSValue js_atomics_op(JSContext *ctx,
             a = v1;
         }
         break;
+#ifdef CONFIG_BIGNUM
+    case ATOMICS_OP_COMPARE_EXCHANGE | (3 << 3):
+        {
+            uint64_t v1 = v;
+            atomic_compare_exchange_strong((_Atomic(uint64_t) *)ptr, &v1, rep_val);
+            a = v1;
+        }
+        break;
+#endif
     default:
         abort();
     }
@@ -49968,6 +50191,14 @@ static JSValue js_atomics_op(JSContext *ctx,
     case JS_CLASS_UINT32_ARRAY:
         ret = JS_NewUint32(ctx, a);
         break;
+#ifdef CONFIG_BIGNUM
+    case JS_CLASS_BIG_INT64_ARRAY:
+        ret = JS_NewBigInt64(ctx, a);
+        break;
+    case JS_CLASS_BIG_UINT64_ARRAY:
+        ret = JS_NewBigUint64(ctx, a);
+        break;
+#endif
     default:
         abort();
     }
@@ -49987,6 +50218,21 @@ static JSValue js_atomics_store(JSContext *ctx,
                              argv[0], argv[1], 0);
     if (!ptr)
         return JS_EXCEPTION;
+#ifdef CONFIG_BIGNUM
+    if (size_log2 == 3) {
+        int64_t v64;
+        ret = JS_ToBigIntValueFree(ctx, JS_DupValue(ctx, argv[2]));
+        if (JS_IsException(ret))
+            return ret;
+        if (JS_ToBigInt64(ctx, &v64, ret)) {
+            JS_FreeValue(ctx, ret);
+            return JS_EXCEPTION;
+        }
+        if (abuf->detached)
+            return JS_ThrowTypeErrorDetachedArrayBuffer(ctx);
+        atomic_store((_Atomic(uint64_t) *)ptr, v64);
+    } else
+#endif
     {
         uint32_t v;
         /* XXX: spec, would be simpler to return the written value */
@@ -50024,6 +50270,9 @@ static JSValue js_atomics_isLockFree(JSContext *ctx,
     if (JS_ToInt32Sat(ctx, &v, argv[0]))
         return JS_EXCEPTION;
     ret = (v == 1 || v == 2 || v == 4
+#ifdef CONFIG_BIGNUM
+           || v == 8
+#endif
            );
     return JS_NewBool(ctx, ret);
 }
@@ -50056,6 +50305,12 @@ static JSValue js_atomics_wait(JSContext *ctx,
                              argv[0], argv[1], 2);
     if (!ptr)
         return JS_EXCEPTION;
+#ifdef CONFIG_BIGNUM
+    if (size_log2 == 3) {
+        if (JS_ToBigInt64(ctx, &v, argv[2]))
+            return JS_EXCEPTION;
+    } else
+#endif
     {        
         if (JS_ToInt32(ctx, &v32, argv[2]))
             return JS_EXCEPTION;
