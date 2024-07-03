@@ -10016,6 +10016,9 @@ static JSValue js_atof(JSContext *ctx, const char *str, const char **pp,
     }
     buf[j] = '\0';
 
+#ifdef CONFIG_BIGNUM
+#else
+
     {
         double d;
         (void)has_legacy_octal;
@@ -10024,6 +10027,7 @@ static JSValue js_atof(JSContext *ctx, const char *str, const char **pp,
         d = js_strtod(buf, radix, is_float);
         val = JS_NewFloat64(ctx, d);
     }
+#endif
     
 done:
     if (buf_allocated)
@@ -13553,8 +13557,10 @@ static JSValue js_call_c_function(JSContext *ctx, JSValueConst func_obj,
     sf->prev_frame = prev_sf;
     rt->current_stack_frame = sf;
     ctx = p->u.cfunc.realm; /* change the current realm */
-    
+#ifdef CONFIG_BIGNUM
+#else
     sf->js_mode = 0;
+#endif
     sf->cur_func = (JSValue)func_obj;
     sf->arg_count = argc;
     arg_buf = argv;
@@ -15936,7 +15942,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                     uint32_t v1, v2;
                     v1 = JS_VALUE_GET_INT(op1);
                     v2 = JS_VALUE_GET_INT(op2);
+#ifdef CONFIG_BIGNUM
+#else
                     v2 &= 0x1f;
+#endif
                     sp[-2] = JS_NewInt32(ctx, v1 << v2);
                     sp--;
                 } else {
@@ -15975,7 +15984,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 if (likely(JS_VALUE_IS_BOTH_INT(op1, op2))) {
                     uint32_t v2;
                     v2 = JS_VALUE_GET_INT(op2);
+#ifdef CONFIG_BIGNUM
+#else
                     v2 &= 0x1f;
+#endif
                     sp[-2] = JS_NewInt32(ctx,
                                           (int)JS_VALUE_GET_INT(op1) >> v2);
                     sp--;
@@ -18677,8 +18689,11 @@ static __exception int next_token(JSParseState *s)
             flags = ATOD_ACCEPT_BIN_OCT | ATOD_ACCEPT_LEGACY_OCTAL |
                 ATOD_ACCEPT_UNDERSCORES;
             radix = 0;
+#ifdef CONFIG_BIGNUM
+#else
             ret = js_atof(s->ctx, (const char *)p, (const char **)&p, radix,
                           flags);
+#endif
             if (JS_IsException(ret))
                 goto fail;
             /* reject `10instanceof Number` */
@@ -18834,6 +18849,8 @@ static __exception int next_token(JSParseState *s)
             goto def_token;
         }
         break;
+#ifdef CONFIG_BIGNUM
+#else
     case '^':
         if (p[1] == '=') {
             p += 2;
@@ -18842,6 +18859,7 @@ static __exception int next_token(JSParseState *s)
             goto def_token;
         }
         break;
+#endif
     case '|':
         if (p[1] == '=') {
             p += 2;
@@ -22878,6 +22896,8 @@ static __exception int js_parse_unary(JSParseState *s, int parse_flags)
 	
 	//no execution
     if (parse_flags & (PF_POW_ALLOWED | PF_POW_FORBIDDEN)) {
+#ifdef CONFIG_BIGNUM
+#else
         if (s->token.val == TOK_POW) {
             /* Strict ES7 exponentiation syntax rules: To solve
                conficting semantics between different implementations
@@ -22894,6 +22914,7 @@ static __exception int js_parse_unary(JSParseState *s, int parse_flags)
                 return -1;
             emit_op(s, OP_pow);
         }
+#endif
     }	
 
     return 0;

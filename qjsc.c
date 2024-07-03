@@ -76,6 +76,9 @@ static const FeatureEntry feature_list[] = {
     { "promise", "Promise" },
 #define FE_MODULE_LOADER 9
     { "module-loader", NULL },
+    #ifdef CONFIG_BIGNUM
+    { "bigint", "BigInt" },
+#endif
 };
 
 void namelist_add(namelist_t *lp, const char *name, const char *short_name,
@@ -494,6 +497,9 @@ int main(int argc, char **argv)
     int module;
     OutputTypeEnum output_type;
     size_t stack_size;
+#ifdef CONFIG_BIGNUM
+    BOOL bignum_ext = FALSE;
+#endif
     namelist_t dynamic_module_list;
     
     out_filename = NULL;
@@ -547,6 +553,11 @@ int main(int argc, char **argv)
                     if (i == countof(feature_list))
                         goto bad_feature;
                 } else
+#ifdef CONFIG_BIGNUM
+                if (!strcmp(optarg, "bignum")) {
+                    bignum_ext = TRUE;
+                } else
+#endif
                 {
                 bad_feature:
                     fprintf(stderr, "unsupported feature: %s\n", optarg);
@@ -624,6 +635,14 @@ int main(int argc, char **argv)
     
     rt = JS_NewRuntime();
     ctx = JS_NewContext(rt);
+#ifdef CONFIG_BIGNUM
+    if (bignum_ext) {
+        JS_AddIntrinsicBigFloat(ctx);
+        JS_AddIntrinsicBigDecimal(ctx);
+        JS_AddIntrinsicOperators(ctx);
+        JS_EnableBignumExt(ctx, TRUE);
+    }
+#endif
     
     /* loader for ES6 modules */
     JS_SetModuleLoaderFunc(rt, NULL, jsc_module_loader, NULL);
@@ -672,6 +691,15 @@ int main(int argc, char **argv)
                         feature_list[i].init_name);
             }
         }
+#ifdef CONFIG_BIGNUM
+        if (bignum_ext) {
+            fprintf(fo,
+                    "  JS_AddIntrinsicBigFloat(ctx);\n"
+                    "  JS_AddIntrinsicBigDecimal(ctx);\n"
+                    "  JS_AddIntrinsicOperators(ctx);\n"
+                    "  JS_EnableBignumExt(ctx, 1);\n");
+        }
+#endif
         /* add the precompiled modules (XXX: could modify the module
            loader instead) */
         for(i = 0; i < init_module_list.count; i++) {
