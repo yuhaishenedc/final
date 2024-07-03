@@ -49,9 +49,6 @@ extern const uint32_t qjsc_repl_size;
 static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
                     const char *filename, int eval_flags)
 {
-    #ifdef PRINTER
-        printf("    2 enter eval_buf (qjs)\n");
-    #endif
     JSValue val;
     int ret;
 
@@ -75,17 +72,11 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
         ret = 0;
     }
     JS_FreeValue(ctx, val);
-    #ifdef PRINTER
-        printf("    2 exit eval_buf (qjs)\n");
-    #endif
     return ret;
 }
 
 static int eval_file(JSContext *ctx, const char *filename, int module)
 {
-    #ifdef PRINTER
-        printf("  1 enter eval_file (qjs)\n");
-    #endif
     uint8_t *buf;
     int ret, eval_flags;
     size_t buf_len;
@@ -106,18 +97,12 @@ static int eval_file(JSContext *ctx, const char *filename, int module)
         eval_flags = JS_EVAL_TYPE_GLOBAL;
     ret = eval_buf(ctx, buf, buf_len, filename, eval_flags);
     js_free(ctx, buf);
-    #ifdef PRINTER
-        printf("  1 exit eval_file\n");
-    #endif
     return ret;
 }
 
 /* also used to initialize the worker context */
 static JSContext *JS_NewCustomContext(JSRuntime *rt)
 {
-    #ifdef PRINTER
-        printf("  1 enter JS_NewCustomContext\n");
-    #endif
     JSContext *ctx;
     ctx = JS_NewContext(rt);
     if (!ctx)
@@ -125,9 +110,6 @@ static JSContext *JS_NewCustomContext(JSRuntime *rt)
     /* system modules */
     js_init_module_std(ctx, "std");
     js_init_module_os(ctx, "os");
-    #ifdef PRINTER
-        printf("  1 exit JS_NewCustomContext\n");
-    #endif
     return ctx;
 }
 
@@ -310,9 +292,6 @@ void help(void)
 
 int main(int argc, char **argv)
 {
-    #ifdef PRINTER
-        printf("0 enter qjs main\n");
-    #endif
     JSRuntime *rt;
     JSContext *ctx;
     struct trace_malloc_data trace_data = { NULL };
@@ -508,10 +487,6 @@ int main(int argc, char **argv)
         JS_DumpMemoryUsage(stdout, &stats, rt);
     }
 
-    #ifdef PRINTER
-        printf("inside the main function now free memory\n");
-    #endif
-
     js_std_free_handlers(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
@@ -540,9 +515,6 @@ int main(int argc, char **argv)
                best[1] + best[2] + best[3] + best[4],
                best[1], best[2], best[3], best[4]);
     }
-    #ifdef PRINTER
-        printf("0 exit qjs main\n");
-    #endif
     return 0;
  fail:
     js_std_free_handlers(rt);

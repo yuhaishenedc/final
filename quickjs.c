@@ -125,7 +125,6 @@
 //#define PRINTERPROPERTY
 
 #ifdef TIMER
-    //struct timespec start_timer,end_timer;
     clock_t start,end;
 #endif
 
@@ -15493,15 +15492,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
-                
-                /*
-                #ifdef TIMER
-                    if(atom==568){
-                        end_timer=clock();
-                        printf("time cost is %lf\n",(double)(end_timer-start_timer));
-                    }
-                #endif
-                */
 
                 val = JS_GetGlobalVar(ctx, atom, opcode - OP_get_var_undef);
                 if (unlikely(JS_IsException(val)))
@@ -27896,11 +27886,6 @@ static __exception int js_parse_source_element(JSParseState *s)
 		printf("    2 enter js_parse_source_element && line number is %d && filename is %s\n",s->line_num,s->filename);
 	#endif
 
-    #ifdef TIMER
-        //clock_gettime(CLOCK_REALTIME,&start_timer);
-        //start=clock();
-    #endif
-
     JSFunctionDef *fd = s->cur_func;
     int tok;
     
@@ -27928,13 +27913,6 @@ static __exception int js_parse_source_element(JSParseState *s)
 	#ifdef PRINTER
 		printf("    2 exit js_parse_source_element && line number is %d\n",s->line_num);
 	#endif
-
-    /*
-    #ifdef TIMER
-        clock_gettime(CLOCK_REALTIME,&end_timer);
-        printf("exit line number is %d && time cost is %ld\n",s->line_num,end_timer.tv_nsec-start_timer.tv_nsec);
-    #endif
-    */
 
     return 0;
 }
@@ -34144,7 +34122,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
 	#endif
 
     #ifdef TIMER
-        //clock_gettime(CLOCK_REALTIME,&start_timer);
         start=clock();
     #endif
 
@@ -34231,8 +34208,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         end = clock();
         printf("1 time cost is %ld\n",end - start);
         //printMemory();
-        //clock_gettime(CLOCK_REALTIME,&end_timer);
-        //printf("1 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
     
     err = js_parse_program(s);
@@ -34248,8 +34223,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         end = clock();
         printf("2 time cost is %ld\n",end - start);
         //printMemory();
-        //clock_gettime(CLOCK_REALTIME,&end_timer);
-        //printf("2 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
     /* create the function object and all the enclosed functions */
@@ -34259,8 +34232,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         end = clock();
         printf("3 time cost is %ld\n",end - start);
         //printMemory();
-        //clock_gettime(CLOCK_REALTIME,&end_timer);
-        //printf("3 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
     if (JS_IsException(fun_obj))
@@ -34285,8 +34256,6 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         end = clock();
         printf("4 time cost is %ld\n",end - start);
         //printMemory();
-        //clock_gettime(CLOCK_REALTIME,&end_timer);
-        //printf("4 time cost is %ld\n",end_timer.tv_nsec-start_timer.tv_nsec);
     #endif
 
 	#ifdef PRINTER
