@@ -568,6 +568,18 @@ static inline JS_BOOL JS_IsBigInt(JSContext *ctx, JSValueConst v)
     return tag == JS_TAG_BIG_INT;
 }
 
+static inline JS_BOOL JS_IsBigFloat(JSValueConst v)
+{
+    int tag = JS_VALUE_GET_TAG(v);
+    return tag == JS_TAG_BIG_FLOAT;
+}
+
+static inline JS_BOOL JS_IsBigDecimal(JSValueConst v)
+{
+    int tag = JS_VALUE_GET_TAG(v);
+    return tag == JS_TAG_BIG_DECIMAL;
+}
+
 static inline JS_BOOL JS_IsBool(JSValueConst v)
 {
     return JS_VALUE_GET_TAG(v) == JS_TAG_BOOL;

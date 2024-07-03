@@ -67,7 +67,6 @@ static int eval_buf(JSContext *ctx, const void *buf, int buf_len,
     } else {
         val = JS_Eval(ctx, buf, buf_len, filename, eval_flags);
     }
-
     if (JS_IsException(val)) {
         js_std_dump_error(ctx);
         ret = -1;
@@ -326,7 +325,7 @@ int main(int argc, char **argv)
     int load_jscalc;
 #endif
     size_t stack_size = 0;
-
+    
 #ifdef CONFIG_BIGNUM
     /* load jscalc runtime if invoked as 'qjscalc' */
     {
@@ -455,6 +454,9 @@ int main(int argc, char **argv)
         }
     }
 
+    if (load_jscalc)
+        bignum_ext = 1;
+
     if (trace_memory) {
         js_trace_malloc_init(&trace_data);
         rt = JS_NewRuntime2(&trace_mf, &trace_data);
@@ -531,7 +533,6 @@ int main(int argc, char **argv)
         JS_ComputeMemoryUsage(rt, &stats);
         JS_DumpMemoryUsage(stdout, &stats, rt);
     }
-
     js_std_free_handlers(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
