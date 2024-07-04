@@ -33849,15 +33849,6 @@ static JSFunctionDef *js_parse_function_class_fields_init(JSParseState *s)
     return fd;
 }
 
-/*
-func_type:
-    JS_PARSE_FUNC_STATEMENT: 0
-    JS_PARSE_FUNC_VAR:       1
-    JS_PARSE_FUNC_EXPR:      2
-*/
-/*
-    func_name = JS_DupAtom(ctx, s->token.u.ident.atom);
-*/
 /* func_name must be JS_ATOM_NULL for JS_PARSE_FUNC_STATEMENT and
    JS_PARSE_FUNC_EXPR, JS_PARSE_FUNC_ARROW and JS_PARSE_FUNC_VAR */
 static __exception int js_parse_function_decl2(JSParseState *s,
@@ -33935,7 +33926,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
             }
         }
     } else if (func_type != JS_PARSE_FUNC_ARROW) {
-        //when to come into here?
         func_name = JS_DupAtom(ctx, func_name);
     }
     
@@ -33956,7 +33946,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
         }
     }
 
-    //todo: need to further understand here
     if (func_type == JS_PARSE_FUNC_VAR) {
         //printf("here && function line number is %d\n",fd->line_num);
         if (!(fd->js_mode & JS_MODE_STRICT) && func_kind == JS_FUNC_NORMAL
@@ -33967,8 +33956,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
         }
         /* Create the lexical name here so that the function closure
            contains it */
-        //printf("fd->is_eval is %d && fd->eval_type is %d\n",fd->is_eval,fd->eval_type);
-        //printf("fd->scope_level is %d && fd->body_scope is %d\n",fd->scope_level,fd->body_scope);
         if (fd->is_eval &&
             (fd->eval_type == JS_EVAL_TYPE_GLOBAL ||
              fd->eval_type == JS_EVAL_TYPE_MODULE) &&
@@ -34008,7 +33995,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (pfd)
         *pfd = fd;
 
-    //preparser
     if(fd->total_scope_level>=2 && func_type!=6 && func_type!=4 && s->getset!=9577 ){
         fd->state=1;
     }
@@ -34046,7 +34032,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     fd->func_kind = func_kind;
     fd->func_type = func_type;
 
-    //modify here
     if(fd->state==1){
         if(js_preparse_function_decl2(s,ptr)){
             goto fail;
@@ -34062,8 +34047,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     }
 
     if (func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR) {
-        //final stage
-        //here may have problem
         emit_class_field_init(s);
     }
 
@@ -34083,7 +34066,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
             goto fail;
         fd->defined_arg_count = 1;
     } else {
-        //here eat 'function' and 'identifier', the reminder is '('
         if (s->token.val == '(') {
             int skip_bits;
             /* if there is an '=' inside the parameter list, we consider there is a parameter expression inside */
@@ -34265,7 +34247,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
         fd->scope_first = fd->scopes[fd->scope_level].first;
     }
 
-    // eat token ')'
     if (next_token(s))
         goto fail;
 
@@ -34273,7 +34254,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (func_kind == JS_FUNC_GENERATOR || func_kind == JS_FUNC_ASYNC_GENERATOR)
         emit_op(s, OP_initial_yield);
 
-    //in generators, yield expression is forbidden during the parsing of the arguments 
     fd->in_function_body = TRUE;
     push_scope(s);  // enter body scope 
     fd->body_scope = fd->scope_level;
@@ -34311,7 +34291,6 @@ static __exception int js_parse_function_decl2(JSParseState *s,
     if (js_parse_directives(s))
         goto fail;
 
-    //in strict_mode, check function and argument names 
     if (js_parse_function_check_names(s, fd, func_name))
         goto fail;
 
@@ -34320,7 +34299,7 @@ static __exception int js_parse_function_decl2(JSParseState *s,
             goto fail;
     }
 
-    //here can save the function original code
+    /* save source code */
     if (!(fd->js_mode & JS_MODE_STRIP)) {
         /* save the function source code */
         fd->source_len = s->buf_ptr - ptr;
@@ -34412,7 +34391,6 @@ done:
                 emit_u16(s, s->cur_func->scope_level);
             }
         } else {
-			// the value is 1
             if (!s->cur_func->is_global_var) {
                 int var_idx = define_var(s, s->cur_func, func_name, JS_VAR_DEF_VAR);
 
@@ -34454,6 +34432,7 @@ done:
     return -1;
 }
 
+//todo check here
 static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t *ptr){
 
     JSFunctionDef *fd=s->cur_func;
@@ -35062,10 +35041,10 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
     js_parse_init(ctx, s, input, input_len, filename);
     skip_shebang(s);
 
-    eval_type = flags & JS_EVAL_TYPE_MASK; //JS_EVAL_TYPE_MASK: 3
+    eval_type = flags & JS_EVAL_TYPE_MASK; 
     m = NULL;
 
-    if (eval_type == JS_EVAL_TYPE_DIRECT) { //2: JS_EVAL_TYPE_DIRECT
+    if (eval_type == JS_EVAL_TYPE_DIRECT) { 
         JSObject *p;
         sf = ctx->rt->current_stack_frame;
         assert(sf != NULL);
@@ -35080,9 +35059,9 @@ static JSValue __JS_EvalInternal(JSContext *ctx, JSValueConst this_obj,
         b = NULL;
         var_refs = NULL;
         js_mode = 0;
-        if (flags & JS_EVAL_FLAG_STRICT)        // JS_EVAL_FLAG_STRICT   (1 << 3)
+        if (flags & JS_EVAL_FLAG_STRICT)        
             js_mode |= JS_MODE_STRICT;
-        if (flags & JS_EVAL_FLAG_STRIP)         // JS_EVAL_FLAG_STRIP    (1 << 4)
+        if (flags & JS_EVAL_FLAG_STRIP)       
             js_mode |= JS_MODE_STRIP;
         if (eval_type == JS_EVAL_TYPE_MODULE) {
             JSAtom module_name = JS_NewAtom(ctx, filename);
@@ -38501,7 +38480,6 @@ static JSValue js_object_toLocaleString(JSContext *ctx, JSValueConst this_val,
 static JSValue js_object_assign(JSContext *ctx, JSValueConst this_val,
                                 int argc, JSValueConst *argv)
 {
-    // Object.assign(obj, source1)
     JSValue obj, s;
     int i;
 
@@ -38691,39 +38669,6 @@ static JSValue js_object_fromEntries(JSContext *ctx, JSValueConst this_val,
     return JS_EXCEPTION;
 }
 
-#if 0
-/* Note: corresponds to ECMA spec: CreateDataPropertyOrThrow() */
-static JSValue js_object___setOwnProperty(JSContext *ctx, JSValueConst this_val,
-                                          int argc, JSValueConst *argv)
-{
-    int ret;
-    ret = JS_DefinePropertyValueValue(ctx, argv[0], JS_DupValue(ctx, argv[1]),
-                                      JS_DupValue(ctx, argv[2]),
-                                      JS_PROP_C_W_E | JS_PROP_THROW);
-    if (ret < 0)
-        return JS_EXCEPTION;
-    else
-        return JS_NewBool(ctx, ret);
-}
-
-static JSValue js_object___toObject(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    return JS_ToObject(ctx, argv[0]);
-}
-
-static JSValue js_object___toPrimitive(JSContext *ctx, JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
-    int hint = HINT_NONE;
-
-    if (JS_VALUE_GET_TAG(argv[1]) == JS_TAG_INT)
-        hint = JS_VALUE_GET_INT(argv[1]);
-
-    return JS_ToPrimitive(ctx, argv[0], hint);
-}
-#endif
-
 /* return an empty string if not an object */
 static JSValue js_object___getClass(JSContext *ctx, JSValueConst this_val,
                                     int argc, JSValueConst *argv)
@@ -38751,46 +38696,6 @@ static JSValue js_object_is(JSContext *ctx, JSValueConst this_val,
 {
     return JS_NewBool(ctx, js_same_value(ctx, argv[0], argv[1]));
 }
-
-#if 0
-static JSValue js_object___getObjectData(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
-    return JS_GetObjectData(ctx, argv[0]);
-}
-
-static JSValue js_object___setObjectData(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
-    if (JS_SetObjectData(ctx, argv[0], JS_DupValue(ctx, argv[1])))
-        return JS_EXCEPTION;
-    return JS_DupValue(ctx, argv[1]);
-}
-
-static JSValue js_object___toPropertyKey(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
-    return JS_ToPropertyKey(ctx, argv[0]);
-}
-
-static JSValue js_object___isObject(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    return JS_NewBool(ctx, JS_IsObject(argv[0]));
-}
-
-static JSValue js_object___isSameValueZero(JSContext *ctx, JSValueConst this_val,
-                                           int argc, JSValueConst *argv)
-{
-    return JS_NewBool(ctx, js_same_value_zero(ctx, argv[0], argv[1]));
-}
-
-static JSValue js_object___isConstructor(JSContext *ctx, JSValueConst this_val,
-                                         int argc, JSValueConst *argv)
-{
-    return JS_NewBool(ctx, JS_IsConstructor(ctx, argv[0]));
-}
-#endif
 
 static JSValue JS_SpeciesConstructor(JSContext *ctx, JSValueConst obj,
                                      JSValueConst defaultConstructor)
@@ -38820,14 +38725,6 @@ static JSValue JS_SpeciesConstructor(JSContext *ctx, JSValueConst obj,
     }
     return species;
 }
-
-#if 0
-static JSValue js_object___speciesConstructor(JSContext *ctx, JSValueConst this_val,
-                                              int argc, JSValueConst *argv)
-{
-    return JS_SpeciesConstructor(ctx, argv[0], argv[1]);
-}
-#endif
 
 static JSValue js_object_get___proto__(JSContext *ctx, JSValueConst this_val)
 {
@@ -41287,23 +41184,6 @@ static JSValue js_number_constructor(JSContext *ctx, JSValueConst new_target,
         return val;
     }
 }
-
-#if 0
-static JSValue js_number___toInteger(JSContext *ctx, JSValueConst this_val,
-                                     int argc, JSValueConst *argv)
-{
-    return JS_ToIntegerFree(ctx, JS_DupValue(ctx, argv[0]));
-}
-
-static JSValue js_number___toLength(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    int64_t v;
-    if (JS_ToLengthFree(ctx, &v, JS_DupValue(ctx, argv[0])))
-        return JS_EXCEPTION;
-    return JS_NewInt64(ctx, v);
-}
-#endif
 
 static JSValue js_number_isNaN(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
