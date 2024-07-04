@@ -6193,7 +6193,6 @@ void JS_ComputeMemoryUsage(JSRuntime *rt, JSMemoryUsage *s)
         case JS_CLASS_ASYNC_FUNCTION_REJECT:     /* u.async_function_data */
         case JS_CLASS_ASYNC_FROM_SYNC_ITERATOR:  /* u.async_from_sync_iterator_data */
         case JS_CLASS_ASYNC_GENERATOR:   /* u.async_generator_data */
-            /* TODO */
         default:
             /* XXX: class definition should have an opaque block size */
             if (p->u.opaque) {
@@ -16188,7 +16187,6 @@ static JSValue js_closure2(JSContext *ctx, JSValue func_obj,
                 if (!var_ref)
                     goto fail;
             } else {
-                //如果这个cv不是local的话那么需要找到这个变量，干脆创建一个好了
                 var_ref = cur_var_refs[cv->var_idx];
                 var_ref->header.ref_count++;
             }
@@ -16254,7 +16252,6 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
             return JS_EXCEPTION;
         }
 
-        //js_closure2
         JSObject *p=JS_VALUE_GET_OBJ(func_obj);
 
         p->exit_arg_buf=NULL;
@@ -16354,7 +16351,7 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
 
     
     if(b->line_num!=1){
-        //初始全局u函数执行时无法获取sf->cuf_func暂时这样处理
+        /* during initialization sf->cur_func cannot find */
         tmp_p->create_closure_parent=JS_VALUE_GET_OBJ(sf->cur_func);
     }else{
         tmp_p->create_closure_parent=NULL;
@@ -16684,7 +16681,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
 static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd);
 
 /* argv[] is modified if (flags & JS_CALL_FLAG_COPY_ARGV) = 0. */
-//argc是当前执行的函数的参数数量
 static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                JSValueConst this_obj, JSValueConst new_target,
                                int argc, JSValue *argv, int flags,
@@ -16770,7 +16766,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         b->preparse_flag=2;
     }
     
-    //move to here
+    // todo: modify here
     init_list_head(&sf->var_ref_list);
 
     if(p->need_reparse_closure==-9877){
@@ -16792,12 +16788,10 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
 
                 int exit_flag=0;
-
-
                 
                 if(cv->is_local){
 
-                    //此时islocal的栈桢已经退出了 
+                    /* is local frame is exited */
                     if(!exit_flag){
 
                         var_ref=js_malloc(caller_ctx,sizeof(JSVarRef));
@@ -16934,11 +16928,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     sf->arg_count = argc;
     sf->cur_func = (JSValue)func_obj;
 
-    //printf("dump the cur func\n");
-    //JS_DumpObject(rt,JS_VALUE_GET_PTR(sf->cur_func));
-
-    //init_list_head(&sf->var_ref_list);
-
     var_refs = p->u.func.var_refs;
 
     local_buf = alloca(alloca_size);
@@ -16965,7 +16954,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
     rt->current_stack_frame = sf;
     ctx = b->realm; /* set the current realm */
 
-    //preparser: set the runtime stack for the function
+    /* preparser: set the runtime stack for the function */
     b->sf=sf;
 
     p->execution_sf=sf;
@@ -17011,7 +17000,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             *sp++ = JS_DupValue(ctx, b->cpool[*pc++]);
             BREAK;
         CASE(OP_fclosure8):
-            //note the JS_DupValue here, make ref_count of JSFunctionBytecode plus 1
             *sp++ = js_closure(ctx, JS_DupValue(ctx, b->cpool[*pc++]), var_refs, sf);
             if (unlikely(JS_IsException(sp[-1])))
                 goto exception;
@@ -17300,8 +17288,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 call_argv = sp - call_argc;
                 sf->cur_pc = pc;
 
-                //printf("in js_call the tag is %d\n",JS_VALUE_GET_TAG(sf->var_buf[0]));
-
                 ret_val = JS_CallInternal(ctx, call_argv[-1], JS_UNDEFINED,
                                           JS_UNDEFINED, call_argc, call_argv, 0, var_refs, sf);
                 
@@ -17584,9 +17570,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
             BREAK;
         CASE(OP_define_var):
             {
-                //JSObject *tmp_p=JS_VALUE_GET_PTR(ctx->global_var_obj);
-                //JSShape *tmp_sh=tmp_p->shape;
-                //printf("        before %d\n",tmp_sh->prop_count);
                 JSAtom atom;
                 int flags;
                 atom = get_u32(pc);
@@ -18233,10 +18216,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 JSAtom atom;
                 atom = get_u32(pc);
                 pc += 4;
-
-                //function declaration is here
-                //JS_GetProperty(JSContext *ctx, JSValueConst this_obj, JSAtom prop)
-                //return JS_GetPropertyInternal(ctx, this_obj, prop, this_obj, 0);
                 val = JS_GetProperty(ctx, sp[-1], atom);
                 if (unlikely(JS_IsException(val)))
                     goto exception;
@@ -19182,17 +19161,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                 break;
             }
             BREAK;
-#if 0
-        CASE(OP_to_string):
-            if (JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_STRING) {
-                ret_val = JS_ToString(ctx, sp[-1]);
-                if (JS_IsException(ret_val))
-                    goto exception;
-                JS_FreeValue(ctx, sp[-1]);
-                sp[-1] = ret_val;
-            }
-            BREAK;
-#endif
         CASE(OP_with_get_var):
         CASE(OP_with_put_var):
         CASE(OP_with_delete_var):
