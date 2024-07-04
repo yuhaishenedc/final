@@ -20461,295 +20461,6 @@ static JSValue js_async_generator_function_call(JSContext *ctx, JSValueConst fun
 
 /* JS parser */
 
-//modify the location 2
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-val的可能取值
-	TOK_NUMBER 		-128
-	TOK_STRING 		-127
-	TOK_TEMPLATE	-126
-	TOK_IDENT		-125
-	TOK_REGEXP		-124
-	...
-	如果不在上述范围内，那直接存储ASCⅡ值，例如'{'
-*/
 typedef struct JSToken {
     int val;
     int line_num;   /* line number of token start */
@@ -20778,14 +20489,13 @@ typedef struct JSToken {
 } JSToken;
 
 typedef struct JSParseState {
-
     #ifdef PREPARSER
         int getset;
     #endif
 
     JSContext *ctx;
-    int last_line_num;      //上一个token在代码中的行号
-    int line_num;           //当前偏移量（token）在代码中的行号（遇到换行符时+1）
+    int last_line_num;      
+    int line_num;      
     const char *filename;
     JSToken token;
     BOOL got_lf; /* true if got line feed before the current token */
@@ -20958,7 +20668,7 @@ static int js_parse_expect(JSParseState *s, int tok)
     }
     return next_token(s);
 }
-//在文件结尾、大括号以及换行符的情况下不需要显式插入分号，此时不需要分号，程序进行了自动补充
+
 static int js_parse_expect_semi(JSParseState *s)
 {
     if (s->token.val != ';') {
@@ -21261,8 +20971,6 @@ static __exception int js_preparse_regexp(JSParseState *s){
         p = p_next;
     }
 
-    //if set s->token.val == TOK_REGEXP, then in next_token will proceed free_token
-    //here set the value to 'a' can avoid this process
     s->token.val = 'a';
     s->buf_ptr = p;
 
@@ -21488,7 +21196,7 @@ static __exception int next_token(JSParseState *s)
             p++;
         }
         /* fall thru */
-    case '\n':  //遇到换行符时设置s->got_lf 和 s->line_num
+    case '\n':  
         p++;
     line_terminator:
         s->got_lf = TRUE;
@@ -22343,10 +22051,7 @@ static void emit_op(JSParseState *s, uint8_t val)
     /* Use the line number of the last token used, not the next token,
        nor the current offset in the source file.
      */
-    // 1 0
     if (unlikely(fd->last_opcode_line_num != s->last_line_num)) {
-        //待解决
-        //第一次执行到这个函数（初始化时）时钟周期会显著增加，不知道为什么
         dbuf_putc(bc, OP_line_num);
         dbuf_put_u32(bc, s->last_line_num);
         fd->last_opcode_line_num = s->last_line_num;
@@ -22817,13 +22522,6 @@ static int define_var(JSParseState *s, JSFunctionDef *fd, JSAtom name,
             fd->scope_level == fd->body_scope &&
             find_arg(ctx, fd, name) >= 0) {
             /* lexical variable redefines a parameter name */
-            /*
-                var obj = {
-                    method(param) {
-                        let param;
-                    }
-                };
-            */
             return js_parse_error(s, "invalid redefinition of parameter name");
         }
         if (find_var_in_child_scope(ctx, fd, name, fd->scope_level) >= 0) {
@@ -23504,7 +23202,6 @@ static __exception int js_parse_object_literal(JSParseState *s)
             func_kind = JS_FUNC_NORMAL;
             if (is_getset) {
                 func_type = JS_PARSE_FUNC_GETTER + prop_type - PROP_TYPE_GET;
-                //preparser
                 s->getset=9577;
             } else {
                 func_type = JS_PARSE_FUNC_METHOD;
@@ -24262,33 +23959,7 @@ static __exception int js_parse_array_literal(JSParseState *s)
                 return -1;
             if (js_parse_assign_expr(s))
                 return -1;
-#if 1
             emit_op(s, OP_append);
-#else
-            int label_next, label_done;
-            label_next = new_label(s);
-            label_done = new_label(s);
-            /* enumerate object */
-            emit_op(s, OP_for_of_start);
-            emit_op(s, OP_rot5l);
-            emit_op(s, OP_rot5l);
-            emit_label(s, label_next);
-            /* on stack: enum_rec array idx */
-            emit_op(s, OP_for_of_next);
-            emit_u8(s, 2);
-            emit_goto(s, OP_if_true, label_done);
-            /* append element */
-            /* enum_rec array idx val -> enum_rec array new_idx */
-            emit_op(s, OP_define_array_el);
-            emit_op(s, OP_inc);
-            emit_goto(s, OP_goto, label_next);
-            emit_label(s, label_done);
-            /* close enumeration */
-            emit_op(s, OP_drop); /* drop undef val */
-            emit_op(s, OP_nip1); /* drop enum_rec */
-            emit_op(s, OP_nip1);
-            emit_op(s, OP_nip1);
-#endif
         } else {
             need_length = TRUE;
             if (s->token.val != ',') {
@@ -24324,7 +23995,6 @@ static BOOL has_with_scope(JSFunctionDef *s, int scope_level)
     /* check if scope chain contains a with statement */
     while (s) {
         int scope_idx = s->scopes[scope_level].first;
-        //printf("scope_idx is %d\n",scope_idx);
         while (scope_idx >= 0) {
             JSVarDef *vd = &s->vars[scope_idx];
 
@@ -25487,7 +25157,7 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
             if (next_token(s))
                 return -1;
 
-            if (call_type == FUNC_CALL_NORMAL) {  //0 
+            if (call_type == FUNC_CALL_NORMAL) { 
             parse_func_call2:
 
                 switch(opcode = get_prev_opcode(fd)) {
@@ -25506,9 +25176,8 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                     fd->byte_code.buf[fd->last_opcode_pos] = OP_get_array_el2;
                     drop_count = 2;
                     break;
-                case OP_scope_get_var:     //182
+                case OP_scope_get_var:    
                     {   
-                        //*todo: skip the with scope resolve
                         int scope;
                         scope = get_u16(fd->byte_code.buf + fd->last_opcode_pos + 5);
                         
@@ -25602,34 +25271,8 @@ static __exception int js_parse_postfix_expr(JSParseState *s, int parse_flags)
                             return -1;
                         if (js_parse_assign_expr(s))
                             return -1;
-#if 1
                         /* XXX: could pass is_last indicator? */
                         emit_op(s, OP_append);
-#else
-                        int label_next, label_done;
-                        label_next = new_label(s);
-                        label_done = new_label(s);
-                        /* push enumerate object below array/idx pair */
-                        emit_op(s, OP_for_of_start);
-                        emit_op(s, OP_rot5l);
-                        emit_op(s, OP_rot5l);
-                        emit_label(s, label_next);
-                        /* on stack: enum_rec array idx */
-                        emit_op(s, OP_for_of_next);
-                        emit_u8(s, 2);
-                        emit_goto(s, OP_if_true, label_done);
-                        /* append element */
-                        /* enum_rec array idx val -> enum_rec array new_idx */
-                        emit_op(s, OP_define_array_el);
-                        emit_op(s, OP_inc);
-                        emit_goto(s, OP_goto, label_next);
-                        emit_label(s, label_done);
-                        /* close enumeration, drop enum_rec and idx */
-                        emit_op(s, OP_drop); /* drop undef */
-                        emit_op(s, OP_nip1); /* drop enum_rec */
-                        emit_op(s, OP_nip1);
-                        emit_op(s, OP_nip1);
-#endif
                     } else {
                         if (js_parse_assign_expr(s))
                             return -1;
@@ -26154,8 +25797,6 @@ static __exception int js_parse_expr_binary(JSParseState *s, int level,
     return 0;
 }
 
-
-//parse the && or || condition
 /* allowed parse_flags: PF_ARROW_FUNC, PF_IN_ACCEPTED */
 static __exception int js_parse_logical_and_or(JSParseState *s, int op,
                                                int parse_flags)
@@ -26270,7 +25911,7 @@ static __exception int js_parse_assign_expr2(JSParseState *s, int parse_flags)
     JSAtom name0 = JS_ATOM_NULL;
     JSAtom name;
 
-    if (s->token.val == TOK_YIELD) {//meet
+    if (s->token.val == TOK_YIELD) {
         BOOL is_star = FALSE, is_async;
         
         if (!(s->cur_func->func_kind & JS_FUNC_GENERATOR))
@@ -26632,7 +26273,6 @@ static void emit_return(JSParseState *s, BOOL hasval)
     top = s->cur_func->top_break;
 
     while (top != NULL) {
-        //printf(" file name is %s && line number is %d\n",s->filename,s->line_num);
         /* XXX: emit the appropriate OP_leave_scope opcodes? Probably not
            required as all local variables will be closed upon returning
            from JS_CallInternal, but not in the same order. */
@@ -26754,7 +26394,6 @@ static __exception int js_parse_block(JSParseState *s)
     return 0;
 }
 
-//tok is used in js_parse_statement_or_decl (help to decide the kind of statement)
 /* allowed parse_flags: PF_IN_ACCEPTED */
 static __exception int js_parse_var(JSParseState *s, int parse_flags, int tok,
                                     BOOL export_flag)
@@ -26874,7 +26513,6 @@ static int is_let(JSParseState *s, int decl_mask)
     int res = FALSE;
 
     if (token_is_pseudo_keyword(s, JS_ATOM_let)) {
-#if 1
         JSParsePos pos;
         js_parse_get_pos(s, &pos);
         for (;;) {
@@ -26907,12 +26545,6 @@ static int is_let(JSParseState *s, int decl_mask)
         if (js_parse_seek_token(s, &pos)) {
             res = -1;
         }
-#else
-        int tok = peek_token(s, TRUE);
-        if (tok == '{' || tok == TOK_IDENT || peek_token(s, FALSE) == '[') {
-            res = TRUE;
-        }
-#endif
     }
     return res;
 }
@@ -29671,8 +29303,6 @@ static JSFunctionDef *js_new_function_def(JSContext *ctx,
     fd->line_num = line_num;
 
     js_dbuf_init(ctx, &fd->pc2line);
-    //fd->pc2line_last_line_num = line_num;
-    //fd->pc2line_last_pc = 0;
     fd->last_opcode_line_num = line_num;
 
     return fd;
@@ -29800,10 +29430,6 @@ static void print_lines(const char *source, int line, int line1) {
     }
 }
 
-/*
-    参数说明：
-        - source: 函数源代码
-*/
 static void dump_byte_code(JSContext *ctx, int pass,
                            const uint8_t *tab, int len,
                            const JSVarDef *args, int arg_count,
@@ -29925,9 +29551,6 @@ static void dump_byte_code(JSContext *ctx, int pass,
 		
         printf("%s", oi->name);
         pos++;
-		//line_num 			OP_FMT_u32
-		//call				OP_FMT_npop
-		//scope_get_var		OP_FMT_atom_u16
         switch(oi->fmt) {
         case OP_FMT_none_int:
             printf(" %d", op - OP_push_0);
@@ -30228,13 +29851,11 @@ static int add_closure_var(JSContext *ctx, JSFunctionDef *s,
     cv->var_idx = var_idx;
     cv->var_name = JS_DupAtom(ctx, var_name);
 
-    //preparser
     if(cv->is_local){
         cv->parent=NULL;
     }else{
         cv->parent=s->parent;
     }
-    //end preparser
 
     return s->closure_var_count - 1;
 }
@@ -31129,20 +30750,6 @@ static int resolve_scope_private_field(JSContext *ctx, JSFunctionDef *s,
     }
     return 0;
 }
-/*
-static void mark_eval_captured_variables(JSContext *ctx, JSFunctionDef *s,
-                                         int scope_level)
-{
-    int idx;
-    JSVarDef *vd;
-
-    for (idx = s->scopes[scope_level].first; idx >= 0;) {
-        vd = &s->vars[idx];
-        vd->is_captured = 1;
-        idx = vd->scope_next;
-    }
-}
-*/
 
 /* XXX: should handle the argument scope generically */
 static BOOL is_var_in_arg_scope(const JSVarDef *vd)
@@ -31663,12 +31270,6 @@ static int skip_dead_code(JSFunctionDef *s, const uint8_t *bc_buf, int bc_len,
             label = get_u32(bc_buf + pos + 1);
             if (update_label(s, label, 0) > 0)
                 break;
-#if 0
-            if (s->label_slots[label].first_reloc) {
-                printf("line %d: unreferenced label %d:%d has relocations\n",
-                       *linep, label, s->label_slots[label].pos2);
-            }
-#endif
             assert(s->label_slots[label].first_reloc == NULL);
         } else {
             /* XXX: output a warning for unreachable code? */
@@ -31736,7 +31337,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
     cc.bc_len = bc_len = s->byte_code.size;
     js_dbuf_init(ctx, &bc_out);
 
-    //pass
     /* first pass for runtime checks (must be done before the
        variables are created) */
     for(i = 0; i < s->global_var_count; i++) {
@@ -31778,7 +31378,6 @@ static __exception int resolve_variables(JSContext *ctx, JSFunctionDef *s)
 
     
     line_num = 0; /* avoid warning */
-    //here add the closure_var_count variable
     for (pos = 0; pos < bc_len; pos = pos_next) {
         op = bc_buf[pos];
         len = opcode_info[op].size;
@@ -32468,7 +32067,6 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
                 if (op1 == OP_return || op1 == OP_return_undef || op1 == OP_throw) {
                     /* jump to return/throw: remove jump, append return/throw */
                     /* updating the line number obfuscates assembly listing */
-                    //if (line1 >= 0) line_num = line1;
                     update_label(s, label, -1);
                     add_pc2line_info(s, bc_out.size, line_num);
                     dbuf_putc(&bc_out, op1);
@@ -33090,7 +32688,6 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
                 pos = jp->pos;
                 diff = s->label_slots[jp->label].addr - pos;
                 if (diff >= -128 && diff <= 127 + delta) {
-                    //put_u8(bc_out.buf + pos, diff);
                     jp->size = 1;
                     if (op == OP_goto16) {
                         bc_out.buf[pos - 1] = jp->op = OP_goto8;
@@ -33178,12 +32775,12 @@ static __exception int resolve_labels(JSContext *ctx, JSFunctionDef *s)
 /* compute the maximum stack size needed by the function */
 
 typedef struct StackSizeState {
-    int bc_len;						//length of bytecode
-    int stack_len_max;				//initial is 0
-    uint16_t *stack_level_tab;		//initial length is length of bytecode, the value is 0xffff
-    int *pc_stack;					//initial is NULL
-    int pc_stack_len;				//initial is 0
-    int pc_stack_size; 				//initial is 0
+    int bc_len;						
+    int stack_len_max;				
+    uint16_t *stack_level_tab;		
+    int *pc_stack;					
+    int pc_stack_len;				
+    int pc_stack_size; 			
 } StackSizeState;
 
 /* 'op' is only used for error indication */
@@ -33255,7 +32852,6 @@ static __exception int compute_stack_size(JSContext *ctx,
     if (ss_check(ctx, s, 0, OP_invalid, 0))
         goto fail;
 
-	//pc_stack_len initial is 1
     while (s->pc_stack_len > 0) {
         pos = s->pc_stack[--s->pc_stack_len];
         stack_len = s->stack_level_tab[pos];
@@ -33292,7 +32888,6 @@ static __exception int compute_stack_size(JSContext *ctx,
             goto fail;
         }
 
-		//栈长度通过这里进行设定
         stack_len += oi->n_push - n_pop;
 
         if (stack_len > s->stack_len_max) {
@@ -33416,6 +33011,7 @@ static int add_module_variables(JSContext *ctx, JSFunctionDef *fd)
     return 0;
 }
 
+//todo check here
 static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * print_parent){
 
     JSValue func_obj;
@@ -33429,10 +33025,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     JSParseState s_s;
     JSParseState *s=&s_s;
 
-    //dont preparse the function body
-    //s->preparse_flag=0;
-    
-    //*todo: checkout the usage of jscontext
     s->ctx=ctx;  
         
     s->last_line_num=fd->reparse_pos.last_line_num;
@@ -34190,7 +33782,6 @@ static int js_parse_function_check_names(JSParseState *s, JSFunctionDef *fd,
             return js_parse_error(s, "\"use strict\" not allowed in function with default or destructuring parameter");
         }
         if (func_name == JS_ATOM_eval || func_name == JS_ATOM_arguments) {
-            // function eval() { }
             return js_parse_error(s, "invalid function name in strict code");
         }
         for (idx = 0; idx < fd->arg_count; idx++) {
@@ -34229,7 +33820,6 @@ static int js_parse_function_check_names(JSParseState *s, JSFunctionDef *fd,
     return 0;
 
 duplicate:
-    //async(a, a) => { }
     return js_parse_error(s, "duplicate argument names not allowed in this context");
 }
 
