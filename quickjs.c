@@ -41239,8 +41239,6 @@ static const JSCFunctionListEntry js_number_funcs[] = {
     JS_PROP_DOUBLE_DEF("EPSILON", 2.220446049250313e-16, 0 ), /* ES6 */
     JS_PROP_DOUBLE_DEF("MAX_SAFE_INTEGER", 9007199254740991.0, 0 ), /* ES6 */
     JS_PROP_DOUBLE_DEF("MIN_SAFE_INTEGER", -9007199254740991.0, 0 ), /* ES6 */
-    //JS_CFUNC_DEF("__toInteger", 1, js_number___toInteger ),
-    //JS_CFUNC_DEF("__toLength", 1, js_number___toLength ),
 };
 
 static JSValue js_thisNumberValue(JSContext *ctx, JSValueConst this_val)
@@ -42880,48 +42878,6 @@ static JSValue js_string_toString(JSContext *ctx, JSValueConst this_val,
 {
     return js_thisStringValue(ctx, this_val);
 }
-
-#if 0
-static JSValue js_string___toStringCheckObject(JSContext *ctx, JSValueConst this_val,
-                                               int argc, JSValueConst *argv)
-{
-    return JS_ToStringCheckObject(ctx, argv[0]);
-}
-
-static JSValue js_string___toString(JSContext *ctx, JSValueConst this_val,
-                                    int argc, JSValueConst *argv)
-{
-    return JS_ToString(ctx, argv[0]);
-}
-
-static JSValue js_string___advanceStringIndex(JSContext *ctx, JSValueConst
-                                              this_val,
-                                              int argc, JSValueConst *argv)
-{
-    JSValue str;
-    int idx;
-    BOOL is_unicode;
-    JSString *p;
-
-    str = JS_ToString(ctx, argv[0]);
-    if (JS_IsException(str))
-        return str;
-    if (JS_ToInt32Sat(ctx, &idx, argv[1])) {
-        JS_FreeValue(ctx, str);
-        return JS_EXCEPTION;
-    }
-    is_unicode = JS_ToBool(ctx, argv[2]);
-    p = JS_VALUE_GET_STRING(str);
-    if (!is_unicode || (unsigned)idx >= p->len || !p->is_wide_char) {
-        idx++;
-    } else {
-        string_getc(p, &idx);
-    }
-    JS_FreeValue(ctx, str);
-    return JS_NewInt32(ctx, idx);
-}
-#endif
-
 /* String Iterator */
 
 static JSValue js_string_iterator_next(JSContext *ctx, JSValueConst this_val,
@@ -43379,20 +43335,6 @@ static const JSCFunctionListEntry js_math_obj[] = {
 };
 
 /* Date */
-
-#if 0
-/* OS dependent: return the UTC time in ms since 1970. */
-static JSValue js___date_now(JSContext *ctx, JSValueConst this_val,
-                             int argc, JSValueConst *argv)
-{
-    int64_t d;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    d = (int64_t)tv.tv_sec * 1000 + (tv.tv_usec / 1000);
-    return JS_NewInt64(ctx, d);
-}
-#endif
-
 /* OS dependent: return the UTC time in microseconds since 1970. */
 static JSValue js___date_clock(JSContext *ctx, JSValueConst this_val,
                                int argc, JSValueConst *argv)
@@ -43407,10 +43349,6 @@ static JSValue js___date_clock(JSContext *ctx, JSValueConst this_val,
 /* OS dependent. d = argv[0] is in ms from 1970. Return the difference
    between UTC time and local time 'd' in minutes */
 static int getTimezoneOffset(int64_t time) {
-#if defined(_WIN32)
-    /* XXX: TODO */
-    return 0;
-#else
     time_t ti;
     struct tm tm;
 
@@ -43438,52 +43376,7 @@ static int getTimezoneOffset(int64_t time) {
     ti = time;
     localtime_r(&ti, &tm);
     return -tm.tm_gmtoff / 60;
-#endif
 }
-
-#if 0
-static JSValue js___date_getTimezoneOffset(JSContext *ctx, JSValueConst this_val,
-                                           int argc, JSValueConst *argv)
-{
-    double dd;
-
-    if (JS_ToFloat64(ctx, &dd, argv[0]))
-        return JS_EXCEPTION;
-    if (isnan(dd))
-        return __JS_NewFloat64(ctx, dd);
-    else
-        return JS_NewInt32(ctx, getTimezoneOffset((int64_t)dd));
-}
-
-static JSValue js_get_prototype_from_ctor(JSContext *ctx, JSValueConst ctor,
-                                          JSValueConst def_proto)
-{
-    JSValue proto;
-    proto = JS_GetProperty(ctx, ctor, JS_ATOM_prototype);
-    if (JS_IsException(proto))
-        return proto;
-    if (!JS_IsObject(proto)) {
-        JS_FreeValue(ctx, proto);
-        proto = JS_DupValue(ctx, def_proto);
-    }
-    return proto;
-}
-
-/* create a new date object */
-static JSValue js___date_create(JSContext *ctx, JSValueConst this_val,
-                                int argc, JSValueConst *argv)
-{
-    JSValue obj, proto;
-    proto = js_get_prototype_from_ctor(ctx, argv[0], argv[1]);
-    if (JS_IsException(proto))
-        return proto;
-    obj = JS_NewObjectProtoClass(ctx, proto, JS_CLASS_DATE);
-    JS_FreeValue(ctx, proto);
-    if (!JS_IsException(obj))
-        JS_SetObjectData(ctx, obj, JS_DupValue(ctx, argv[2]));
-    return obj;
-}
-#endif
 
 /* RegExp */
 
@@ -43742,27 +43635,6 @@ static JSValue js_regexp_compile(JSContext *ctx, JSValueConst this_val,
     JS_FreeValue(ctx, bc);
     return JS_EXCEPTION;
 }
-
-#if 0
-static JSValue js_regexp_get___source(JSContext *ctx, JSValueConst this_val)
-{
-    JSRegExp *re = js_get_regexp(ctx, this_val, TRUE);
-    if (!re)
-        return JS_EXCEPTION;
-    return JS_DupValue(ctx, JS_MKPTR(JS_TAG_STRING, re->pattern));
-}
-
-static JSValue js_regexp_get___flags(JSContext *ctx, JSValueConst this_val)
-{
-    JSRegExp *re = js_get_regexp(ctx, this_val, TRUE);
-    int flags;
-
-    if (!re)
-        return JS_EXCEPTION;
-    flags = lre_get_flags(re->bytecode->u.str8);
-    return JS_NewInt32(ctx, flags);
-}
-#endif
 
 static JSValue js_regexp_get_source(JSContext *ctx, JSValueConst this_val)
 {
@@ -44174,19 +44046,6 @@ static JSValue JS_RegExpExec(JSContext *ctx, JSValueConst r, JSValueConst s)
     JS_FreeValue(ctx, method);
     return js_regexp_exec(ctx, r, 1, &s);
 }
-
-#if 0
-static JSValue js_regexp___RegExpExec(JSContext *ctx, JSValueConst this_val,
-                                      int argc, JSValueConst *argv)
-{
-    return JS_RegExpExec(ctx, argv[0], argv[1]);
-}
-static JSValue js_regexp___RegExpDelete(JSContext *ctx, JSValueConst this_val,
-                                        int argc, JSValueConst *argv)
-{
-    return JS_RegExpDelete(ctx, argv[0], argv[1]);
-}
-#endif
 
 static JSValue js_regexp_test(JSContext *ctx, JSValueConst this_val,
                               int argc, JSValueConst *argv)
@@ -48466,7 +48325,6 @@ static JSValue js_promise_race(JSContext *ctx, JSValueConst this_val,
     JS_FreeValue(ctx, resolving_funcs[1]);
     return result_promise;
  fail:
-    //JS_FreeValue(ctx, next_method); // why not???
     JS_FreeValue(ctx, result_promise);
     result_promise = JS_EXCEPTION;
     goto done;
@@ -53111,26 +52969,6 @@ static int js_typed_array_get_length_internal(JSContext *ctx,
     return p->u.array.count;
 }
 
-#if 0
-/* validate a typed array and return its length */
-static JSValue js_typed_array___getLength(JSContext *ctx,
-                                          JSValueConst this_val,
-                                          int argc, JSValueConst *argv)
-{
-    BOOL ignore_detached = JS_ToBool(ctx, argv[1]);
-
-    if (ignore_detached) {
-        return js_typed_array_get_length(ctx, argv[0]);
-    } else {
-        int len;
-        len = js_typed_array_get_length_internal(ctx, argv[0]);
-        if (len < 0)
-            return JS_EXCEPTION;
-        return JS_NewInt32(ctx, len);
-    }
-}
-#endif
-
 static JSValue js_typed_array_create(JSContext *ctx, JSValueConst ctor,
                                      int argc, JSValueConst *argv)
 {
@@ -53158,15 +52996,6 @@ static JSValue js_typed_array_create(JSContext *ctx, JSValueConst ctor,
     }
     return ret;
 }
-
-#if 0
-static JSValue js_typed_array___create(JSContext *ctx,
-                                       JSValueConst this_val,
-                                       int argc, JSValueConst *argv)
-{
-    return js_typed_array_create(ctx, argv[0], max_int(argc - 1, 0), argv + 1);
-}
-#endif
 
 static JSValue js_typed_array___speciesCreate(JSContext *ctx,
                                               JSValueConst this_val,
