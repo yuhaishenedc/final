@@ -645,8 +645,6 @@ typedef struct JSFunctionBytecode {
     
 } JSFunctionBytecode;
 
-//#define offsetof(type, field) ((size_t) &((JSFunctionBytecode *)0)->debug)
-
 typedef struct JSBoundFunction {
     JSValue func_obj;
     JSValue this_val;
@@ -972,26 +970,14 @@ struct JSObject {
         JSValue object_data;    /* for JS_SetObjectData(): 8/16/16 bytes */
     } u;
     /* byte sizes: 40/48/72 */
-    //preparse flag (if put it in the struct above, the value will be modified)
-    int pos1;
-    int pos2;
-    int pos3;
-    int pos4;
-    int pos5;
-    int pos6;
-    int pos7;
-    int pos8;
-    int pos9;
-    int pos10;
+    double dummy;  /* Make sure value not override */
     int need_reparse_closure;
     JSValue *exit_arg_buf;
     JSValue *exit_var_buf;
-    //这个值指调用这个jsclosure的func obj，从js closure函数中获取
-    JSObject *create_closure_parent;
+    JSObject *create_closure_parent; /* function object which call js_closure function to create this jsclosure */
     JSStackFrame *execution_sf;
 };
 
-//引入quickjs-atom.h中全部的atom
 enum {
     __JS_ATOM_NULL = JS_ATOM_NULL,
 #define DEF(name, str) JS_ATOM_ ## name,
@@ -2024,8 +2010,7 @@ void JS_FreeRuntime(JSRuntime *rt)
             printf("Secondary object leaks: %d\n", count);
     }
 #endif
-    
-    //here is wrong
+
     assert(list_empty(&rt->gc_obj_list));
 
     /* free the classes */
@@ -2752,24 +2737,6 @@ static JSAtom __JS_NewAtom(JSRuntime *rt, JSString *str, int atom_type)
     uint32_t h, h1, i;
     JSAtomStruct *p;
     int len;
-
-#if 0
-    printf("__JS_NewAtom: ");  JS_DumpString(rt, str); printf("\n");
-#endif
-/*
-    printf("enter __JS_NewAtom\n");
-    JS_DumpString(rt, str); printf("\n");
-    printf("atom type is %d\n",atom_type);
-    printf("str->atom_type is %d\n",str->atom_type);
-*/
-/*
-enum {
-    JS_ATOM_TYPE_STRING = 1,
-    JS_ATOM_TYPE_GLOBAL_SYMBOL,
-    JS_ATOM_TYPE_SYMBOL,
-    JS_ATOM_TYPE_PRIVATE,
-};
-*/
     if (atom_type < JS_ATOM_TYPE_SYMBOL) {
         /* str is not NULL */
         if (str->atom_type == atom_type) {
@@ -2897,10 +2864,8 @@ enum {
 
     rt->atom_count++;
 
-    //p->hash_next指向哈希数组中的当前槽位h1中存储的数据，如果这个位置存在数据的话，
-    //hash_next就存储了这个数据，通过这种方式生成了链表
     if (atom_type != JS_ATOM_TYPE_SYMBOL) {
-        p->hash_next = rt->atom_hash[h1];
+        p->hash_next = rt->atom_hash[h1]; /* linkedlist */
         rt->atom_hash[h1] = i;
         if (unlikely(rt->atom_count >= rt->atom_count_resize))
             JS_ResizeAtomHash(rt, rt->atom_hash_size * 2);
@@ -4391,9 +4356,6 @@ static void js_shape_hash_link(JSRuntime *rt, JSShape *sh)
     rt->shape_hash_count++;
 }
 
-/*
-    因为同一个哈希可能对应到JSRuntime shape_hash链表上的多个值，所以这里找到具体对应的JSShape *sh，然后从链表上溢出这一项
-*/
 static void js_shape_hash_unlink(JSRuntime *rt, JSShape *sh)
 {
     uint32_t h;
@@ -4959,9 +4921,6 @@ static int JS_SetObjectData(JSContext *ctx, JSValueConst obj, JSValue val)
     return -1;
 }
 
-/*
-    classid: 函数对应 JS_CLASS_BYTECODE_FUNCTION
-*/
 JSValue JS_NewObjectClass(JSContext *ctx, int class_id)
 {
     return JS_NewObjectProtoClass(ctx, ctx->class_proto[class_id], class_id);
@@ -9512,14 +9471,6 @@ static BOOL js_object_has_name(JSContext *ctx, JSValueConst obj)
     return (p->len != 0);
 }
 
-/*
-    函数作用：
-        定义obj的name属性
-
-    参数：
-        JS_IsObject: 获取JSValue中的tag，如果是JS_TAG_OBJECT那么返回TRUE
-        js_object_has_name：如果JSValueConst obj有一个非空的name属性，那么返回TRUE
-*/
 static int JS_DefineObjectName(JSContext *ctx, JSValueConst obj,
                                JSAtom name, int flags)
 {
@@ -16057,22 +16008,6 @@ typedef enum JSParseFunctionEnum {
     JS_PARSE_FUNC_CLASS_CONSTRUCTOR,
     JS_PARSE_FUNC_DERIVED_CLASS_CONSTRUCTOR,
 } JSParseFunctionEnum;
-/*
-    JS_PARSE_FUNC_STATEMENT:
-    function Test262Error(message) {
-        this.message = message || "";
-    }
-
-    JS_PARSE_FUNC_VAR:
-    {
-        function f() {  }
-    }
-
-    JS_PARSE_FUNC_EXPR:
-    assert.throws = function (expectedErrorConstructor, func, message) {
-  
-    };
-*/
 
 typedef enum JSParseExportEnum {
     JS_PARSE_EXPORT_NONE,
@@ -16083,9 +16018,9 @@ typedef enum JSParseExportEnum {
 typedef struct JSFunctionDef {
 
 #ifdef PREPARSER
-    int state;          //1代表仅对函数进行预解析，没有注册相关内容，0代表正常函数，2代表进行了预解析且又完成了全量解析
-    int reparse_flag;   //1代表在js_create_function时需要执行全量解析
-    int total_scope_level;  //scope level in the total scope
+    int state;          /* 0 normal 1 perparse 2 fully */
+    int reparse_flag;   /* in js_create_function 1 need fully */
+    int total_scope_level;  /*scope level in the total scope */
     int reparse_closure_var;
     struct{
         int last_line_num;
@@ -16163,8 +16098,8 @@ typedef struct JSFunctionDef {
     
     int scope_level;    	/* index into fd->scopes if the current lexical scope */
     int scope_first;    	/* index into vd->vars of first lexically scoped variable */
-    int scope_size;    	 	//fd->scopes数组已经分配的大小
-    int scope_count;    	//fd->scopes数组中元素数量
+    int scope_size;    	 	
+    int scope_count;   
     JSVarScope *scopes;
     JSVarScope def_scope_array[4];
     int body_scope; 		/* scope of the body of the function or eval */
@@ -16175,7 +16110,7 @@ typedef struct JSFunctionDef {
 
     DynBuf byte_code;
     int last_opcode_pos; /* -1 if no last opcode */
-    int last_opcode_line_num;       //最后一个字节码所在的行数
+    int last_opcode_line_num;     
     BOOL use_short_opcodes; /* true if short opcodes are used in byte_code */
     
     LabelSlot *label_slots;
@@ -16326,7 +16261,6 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
         p->exit_var_buf=NULL;
 
         p->create_closure_parent=JS_VALUE_GET_PTR(sf->cur_func);
-        p->create_closure_parent->pos1=-100;
 
         b->parent_p=p;
 
@@ -16422,7 +16356,6 @@ static JSValue js_closure(JSContext *ctx, JSValue bfunc,
     if(b->line_num!=1){
         //初始全局u函数执行时无法获取sf->cuf_func暂时这样处理
         tmp_p->create_closure_parent=JS_VALUE_GET_OBJ(sf->cur_func);
-        tmp_p->create_closure_parent->pos1=-100;
     }else{
         tmp_p->create_closure_parent=NULL;
     }
@@ -16863,12 +16796,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
                 
                 if(cv->is_local){
-                    
-                    
-                    if(reparse_parent_p->pos1!=-100){
-                        printf("here is error\n");
-                        goto not_a_function;
-                    }
 
                     //此时islocal的栈桢已经退出了 
                     if(!exit_flag){
