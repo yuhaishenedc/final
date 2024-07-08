@@ -33011,7 +33011,6 @@ static int add_module_variables(JSContext *ctx, JSFunctionDef *fd)
     return 0;
 }
 
-//todo check here
 static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * print_parent){
 
     JSValue func_obj;
@@ -33026,23 +33025,16 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     JSParseState *s=&s_s;
 
     s->ctx=ctx;  
-        
     s->last_line_num=fd->reparse_pos.last_line_num;
     s->line_num=fd->reparse_pos.line_num;
-
     s->token.val=fd->token.val;
     s->token.line_num=fd->token.line_num;
     s->token.ptr=(const uint8_t *)fd->token.ptr;
-
     s->got_lf=fd->reparse_pos.got_lf;
     s->buf_ptr=(const uint8_t *)fd->reparse_pos.ptr;
     s->last_ptr=(const uint8_t *)fd->reparse_pos.last_ptr;
     s->buf_end=fd->reparse_pos.buf_end;
-
     s->cur_func=fd;
-    //s->is_module
-    //s->allow_html_comments
-    //s->ext_json
         
     if(js_parse_function_decl2_continue(s,fd->reparse_pos.static_ptr)){
         printf("failed\n");
@@ -33058,22 +33050,18 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
         fd->scopes[ARG_SCOPE_INDEX].first = ARG_SCOPE_END;
     }
 
-    //in each scope, fd->scopes[scope].first points to the last value in the fd->vars array (in the corresponding scope level)
-    //the scope chain order is reversed, the vd in fd->vars array which is at the end porints the value in the previous
     for (idx = 0; idx < fd->var_count; idx++) {
         JSVarDef *vd = &fd->vars[idx];
         vd->scope_next = fd->scopes[vd->scope_level].first;
         fd->scopes[vd->scope_level].first = idx;
     }
-    
-    //scope bigger than 2 represents the scope inside the function body
+
     for (scope = 2; scope < fd->scope_count; scope++) {
         JSVarScope *sd = &fd->scopes[scope];
         if (sd->first < 0)
             sd->first = fd->scopes[sd->parent].first;
     }
 
-    //link different scope
     for (idx = 0; idx < fd->var_count; idx++) {
         JSVarDef *vd = &fd->vars[idx];
         if (vd->scope_next < 0 && vd->scope_level > 1) {
@@ -33086,16 +33074,13 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
        are used to compile the eval and they must be ordered by scope,
        so it is necessary to create the closure variables before any
        other variable lookup is done. */
-    //dont konw how this happens
     if (fd->has_eval_call)
         add_eval_variables(ctx, fd);
 
-    //when does it happens?
     /* add the module global variables in the closure */
     if (fd->module) {
         if (add_module_variables(ctx, fd)){
-            printf("failed\n");
-            //goto fail;
+            return -1;
         }
     }
 
@@ -33113,8 +33098,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
         func_obj = js_create_function(ctx, fd1);
 
         if (JS_IsException(func_obj)){
-            printf("failed\n");
-            //goto fail;
+            return -1;
         }
 		
         /* save it in the constant pool */
@@ -33135,17 +33119,10 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     }
 #endif
 
-    
-
-    //here is the adding closure variable process
-    //need to handle the error here
     if (resolve_variables(ctx, fd)){
-        printf("failed\n");
-        //goto fail;
+        return -1;
     }
 
-    //we need the fd->state==1 in resolve_varialbles (get_closure_var2)
-    //now the function is fully parsed
     fd->state=2;
 
 #if defined(DUMP_BYTECODE) && (DUMP_BYTECODE & 2)
@@ -33160,15 +33137,12 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     }
 #endif
 
-    //need to handle the two errors here
     if (resolve_labels(ctx, fd)){
-        printf("failed\n");
-        //goto fail;
+        return -1;
     }
            
     if (compute_stack_size(ctx, fd, &stack_size) < 0){
-        printf("failed\n");
-        //goto fail;
+        return -1;
     }
 
     reparse_b=fd->reparse_bytecode;
@@ -33220,17 +33194,11 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
 
     if (fd->js_mode & JS_MODE_STRIP) {
         JS_FreeAtom(ctx, fd->filename);
-        dbuf_free(&fd->pc2line);    // probably useless
+        dbuf_free(&fd->pc2line);
     } else {
-        //XXX: source and pc2line info should be packed at the end of the
-        //JSFunctionBytecode structure, avoiding allocation overhead
         reparse_b->has_debug = 1;
         reparse_b->debug.filename = fd->filename;
         reparse_b->debug.line_num = fd->line_num;
-
-        //DynBuf pc2line;
-        //compute_pc2line_info(fd, &pc2line);
-        //js_free(ctx, fd->line_number_slots)
         reparse_b->debug.pc2line_buf = js_realloc(ctx, fd->pc2line.buf, fd->pc2line.size);
         if (!reparse_b->debug.pc2line_buf)
             reparse_b->debug.pc2line_buf = fd->pc2line.buf;
@@ -33251,7 +33219,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     js_free(ctx, fd->closure_var);
     fd->closure_var = NULL;
 
-    //reset the parent
     JSFunctionDef *reparse_closure_parent=fd->parent;
     JSFunctionBytecode *reparse_closure_bytecode=reparse_closure_parent->reparse_bytecode;
     while(reparse_closure_parent!=NULL&&reparse_closure_parent->reparse_closure_var==1){
@@ -33275,9 +33242,6 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     reparse_b->super_allowed = fd->super_allowed;   //
     reparse_b->arguments_allowed = fd->arguments_allowed;   //
     reparse_b->backtrace_barrier = fd->backtrace_barrier;   //
-    //reparse_b->realm = JS_DupContext(ctx);
-
-    //todo: need to look here whether need further process
 
 #if defined(DUMP_BYTECODE) && (DUMP_BYTECODE & 1)
     if (!(fd->js_mode & JS_MODE_STRIP)) {
@@ -33319,7 +33283,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
 
         b->defined_arg_count=fd->defined_arg_count;
 
-        //need further process here
         if(fd->js_mode & JS_MODE_STRIP){
 
         }else{
@@ -33338,13 +33301,9 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         b->arguments_allowed=fd->arguments_allowed;
         b->backtrace_barrier=fd->backtrace_barrier;
         b->realm = JS_DupContext(ctx);
-
         b->preparse_fd=fd;
         b->preparse_flag=1;
-
         b->line_num=fd->line_num;
-
-        //在JS_WriteFunctionBytecode函数中如果没有大于零的长度的话会报错，这里使用1的长度进行占位
         b->byte_code_len=1;
         b->byte_code_buf=(void *)((uint8_t*)b + 0);
 
@@ -33367,22 +33326,18 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             fd->scopes[ARG_SCOPE_INDEX].first = ARG_SCOPE_END;
         }
 
-        //in each scope, fd->scopes[scope].first points to the last value in the fd->vars array (in the corresponding scope level)
-        //the scope chain order is reversed, the vd in fd->vars array which is at the end porints the value in the previous
         for (idx = 0; idx < fd->var_count; idx++) {
             JSVarDef *vd = &fd->vars[idx];
             vd->scope_next = fd->scopes[vd->scope_level].first;
             fd->scopes[vd->scope_level].first = idx;
         }
     
-        //scope bigger than 2 represents the scope inside the function body
         for (scope = 2; scope < fd->scope_count; scope++) {
             JSVarScope *sd = &fd->scopes[scope];
             if (sd->first < 0)
                 sd->first = fd->scopes[sd->parent].first;
         }
 
-        //link different scope
         for (idx = 0; idx < fd->var_count; idx++) {
             JSVarDef *vd = &fd->vars[idx];
             if (vd->scope_next < 0 && vd->scope_level > 1) {
@@ -33436,8 +33391,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
     }
 #endif
 
-
-        //here is the adding closure variable count process
         if (resolve_variables(ctx, fd))
             goto fail;
 
@@ -33460,7 +33413,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         if (compute_stack_size(ctx, fd, &stack_size) < 0)
             goto fail;
         
-        //#define offsetof(type, field) ((size_t) &((type *)0)->field)
         if (fd->js_mode & JS_MODE_STRIP) {
             function_size = offsetof(JSFunctionBytecode, debug);
         } else {
@@ -33520,9 +33472,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             b->var_count = fd->var_count;
             b->arg_count = fd->arg_count;
             b->defined_arg_count = fd->defined_arg_count;
-            //through this way to preserve the AST
-            //js_free(ctx, fd->args);
-            //js_free(ctx, fd->vars);
         }
 
         b->cpool_count = fd->cpool_count;
@@ -33544,10 +33493,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             b->has_debug = 1;
             b->debug.filename = fd->filename;
             b->debug.line_num = fd->line_num;
-
-            //DynBuf pc2line;
-            //compute_pc2line_info(fd, &pc2line);
-            //js_free(ctx, fd->line_number_slots)
             b->debug.pc2line_buf = js_realloc(ctx, fd->pc2line.buf, fd->pc2line.size);
             if (!b->debug.pc2line_buf)
                 b->debug.pc2line_buf = fd->pc2line.buf;
@@ -33558,19 +33503,11 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
 
         b->line_num=fd->line_num;
             
-        //here fd->scopes cannot be freed
-        //if (fd->scopes != fd->def_scope_array)
-            //js_free(ctx, fd->scopes);
-            
         b->closure_var_count = fd->closure_var_count;
         if (b->closure_var_count) {
             b->closure_var = (void *)((uint8_t*)b + closure_var_offset);
             memcpy(b->closure_var, fd->closure_var, b->closure_var_count * sizeof(*b->closure_var));
         }
-
-        //construct the closure variable chain
-        //js_free(ctx, fd->closure_var);
-        //fd->closure_var = NULL;
 
         b->has_prototype = fd->has_prototype;
         b->has_simple_parameter_list = fd->has_simple_parameter_list;
@@ -33584,12 +33521,8 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
         b->arguments_allowed = fd->arguments_allowed;
         b->backtrace_barrier = fd->backtrace_barrier;
         b->realm = JS_DupContext(ctx);
-
-        //preparser
-        //fully parse condition
         b->preparse_flag=0;
 
-        //preparser
         for(int i=0;i<b->cpool_count;i++){
             if(JS_VALUE_GET_TAG(b->cpool[i])==JS_TAG_FUNCTION_BYTECODE){
                 JSFunctionBytecode *tmp=JS_VALUE_GET_PTR(b->cpool[i]);
@@ -33612,14 +33545,6 @@ static JSValue js_create_function(JSContext *ctx, JSFunctionDef *fd)
             /* remove from parent list */
             list_del(&fd->link);
         }
-
-        //这个对应的是最外层，即name为80，line number为1的情况
-        //这时如果free了这个fd，那么这个fd后续会在其他地方被使用
-        //但是其他的结构体此时还是会指向这个指针，因此会出现错误
-        //需要这整个fd里面没有任何延迟解析的部分才可以进行free操作，否则不可以 
-
-        //问题就在这里，会出现free无法释放的情况
-        //js_free(ctx, fd);
 
         b->full_fd=fd;
         fd->reparse_bytecode=b;
@@ -34432,31 +34357,14 @@ done:
     return -1;
 }
 
-//todo check here
 static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t *ptr){
 
     JSFunctionDef *fd=s->cur_func;
-    //JSContext *ctx=s->ctx;
-
-    //check if there is value that should not be saved
-    //todo: use the part function source code to finish this process
-    //fd->reparse_pos.last_line_num=s->last_line_num;
-    //fd->reparse_pos.line_num=s->line_num;
-    //fd->reparse_pos.got_lf=s->got_lf;
-    //fd->reparse_pos.ptr=s->buf_ptr;
-    //fd->reparse_pos.last_ptr=s->last_ptr;
-    //fd->reparse_pos.buf_end=s->buf_end;
-
-    //use to save source code
-    //fd->reparse_pos.static_ptr=ptr;
-
     fd->token.val=s->token.val;
-    //fd->token.line_num=s->token.line_num;
     fd->token.line_num=1;
     
     int token_len=s->token.ptr-ptr;
     int start_len=s->buf_ptr-ptr;
-    
     int token_count=0;
     
     if (!(fd->func_type == JS_PARSE_FUNC_ARROW && s->token.val == TOK_IDENT)){
@@ -34468,7 +34376,6 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
                 else if(s->token.val=='(') token_count++;
             }
         }else{
-            //when is this condition happens?
             if(js_parse_expect(s,'('))
                 return -1;
         }
@@ -34476,53 +34383,12 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
     
     if(next_token(s))
         return -1;
-    
-    /*
-    if(s->token.val==TOK_ARROW){
-        if(next_token(s))
-            return -1;
-
-        if (s->token.val != '{') {
-            #ifdef PRINTER
-                printf("      inside the one line arrow function process\n");
-            #endif
-            if (js_parse_function_check_names(s, fd, fd->func_name))
-                return -1;
-
-            //problem here
-            while(s->token.val!='\n'&&s->token.val!=';'){
-                if(next_token(s)) return -1;
-            }
-
-            
-
-            if (!(fd->js_mode & JS_MODE_STRIP)) {
-                fd->source_len = s->last_ptr - ptr;
-                fd->source = js_strndup(ctx, (const char *)ptr, fd->source_len);
-                if (!fd->source)
-                    goto fail;
-            }
-
-
-            return 0;
-        }
-    }
-
-    */
-    
 
     if(js_parse_expect(s,'{'))
         return -1;
 
     if (js_parse_directives(s))
         return -1;
-
-    //in strict_mode, check function and argument names 
-    /*
-    if (js_parse_function_check_names(s, fd, fd->func_name))
-        return -1;
-    */
-    //
 
     token_count=1;
     while(token_count>0){
@@ -34543,8 +34409,6 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
     if(next_token(s))
         return -1;
 
-    //here fd->source_len is 0
-
     fd->reparse_pos.last_line_num=0;
     fd->reparse_pos.line_num=1;
     fd->reparse_pos.got_lf=0;
@@ -34556,7 +34420,6 @@ static __exception int js_preparse_function_decl2(JSParseState *s, const uint8_t
 
     fd->reparse_pos.ptr=fd->source+start_len;
     fd->token.ptr=fd->source+token_len;
-    //fd->reparse_pos.last_ptr=ptr;
     fd->reparse_pos.buf_end=(const uint8_t *)(fd->source+fd->source_len);
     
     return 0;
@@ -34567,29 +34430,20 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
 
     JSContext *ctx=s->ctx;
     JSFunctionDef *fd=s->cur_func;
-    //BOOL is_expr;
-    //int func_idx, lexical_func_idx = -1;
     BOOL has_opt_arg;
 
     fd->total_scope_level=-100;
 
     JSParseFunctionEnum func_type=fd->func_type;
     JSFunctionKindEnum func_kind=fd->func_kind;
-    //BOOL is_expr=(func_type != JS_PARSE_FUNC_STATEMENT && func_type != JS_PARSE_FUNC_VAR);
     JSAtom func_name=fd->func_name;
 
-    //*reset the parse environment
     fd->scope_level=0;
     fd->in_function_body=FALSE;
     fd->byte_code.size=0;
-
-    //*after js_new_function_def the fd->scope_count is 1
     fd->scope_count=1;
-
-    //*drop the empty return (op_return_undef)
     fd->last_opcode_pos=0;
 
-    //continue at where the js_preparse_function_decl2 begins
     if (func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR ||
         func_type == JS_PARSE_FUNC_DERIVED_CLASS_CONSTRUCTOR) {
         /* error if not invoked as a constructor */
@@ -34597,8 +34451,6 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
     }
 
     if (func_type == JS_PARSE_FUNC_CLASS_CONSTRUCTOR) {
-        //final stage
-        //here may have problem
         emit_class_field_init(s);
     }
 
@@ -34809,11 +34661,8 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
         emit_op(s, OP_initial_yield);
     
     
-    //*reparse the function body
     fd->in_function_body=TRUE;
-
     push_scope(s);
-
     fd->body_scope=fd->scope_level;
 
     if (s->token.val == TOK_ARROW) {
@@ -34832,33 +34681,12 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
             else
                 emit_op(s, OP_return);
             
-            //need further process here
-            /*
-            if (!(fd->js_mode & JS_MODE_STRIP)) {
-                fd->source_len = s->last_ptr - ptr;
-                fd->source = js_strndup(ctx, (const char *)ptr, fd->source_len);
-                if (!fd->source)
-                    goto fail;
-            }
-            */
-            
-            //can process this way?
-            //goto done;
             return 0;
         }
     }
 
     if(js_parse_expect(s,'{'))
         goto fail;
-
-    /*
-    if (js_parse_directives(s))
-        goto fail;
-
-    //in strict_mode, check function and argument names 
-    if (js_parse_function_check_names(s, fd, func_name))
-        goto fail;
-    */
 
     while(s->token.val!='}'){
         if(js_parse_source_element(s))
@@ -34876,13 +34704,7 @@ static __exception int js_parse_function_decl2_continue(JSParseState *s,const ui
     }
     return 0;
 
-
-//todo: the fail need to be processed
 fail:
-    //s->cur_func = fd->parent;
-    //js_free_function_def(ctx, fd);
-    //if (pfd)
-    //    *pfd = NULL;
     return -1;
 }
 
