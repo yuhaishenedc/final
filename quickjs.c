@@ -16766,9 +16766,9 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
         b->preparse_flag=2;
     }
     
-    // todo: modify here
     init_list_head(&sf->var_ref_list);
 
+    //todo here
     if(p->need_reparse_closure==-9877){
 
         p->need_reparse_closure=0;
@@ -16786,50 +16786,39 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
 
                 JSObject *reparse_parent_p=p->create_closure_parent;
                 JSStackFrame *parent_sf=reparse_parent_p->execution_sf;
-
-                int exit_flag=0;
                 
                 if(cv->is_local){
 
-                    /* is local frame is exited */
-                    if(!exit_flag){
+                    var_ref=js_malloc(caller_ctx,sizeof(JSVarRef));
+                    var_ref->header.ref_count = 1;
+                    var_ref->is_detached = FALSE;
+                    var_ref->is_arg = cv->is_arg;
+                    var_ref->var_idx = cv->var_idx;
 
-                        var_ref=js_malloc(caller_ctx,sizeof(JSVarRef));
-                        var_ref->header.ref_count = 1;
-                        var_ref->is_detached = FALSE;
-                        var_ref->is_arg = cv->is_arg;
-                        var_ref->var_idx = cv->var_idx;
+                    if(cv->is_arg && reparse_parent_p->exit_arg_buf)
+                        var_ref->pvalue= &reparse_parent_p->exit_arg_buf[cv->var_idx];
+                    else if (!cv->is_arg && reparse_parent_p->exit_var_buf)
+                        var_ref->pvalue= &reparse_parent_p->exit_var_buf[cv->var_idx];
+                    else 
+                        var_ref->pvalue=cv->is_arg ? &parent_sf->arg_buf[cv->var_idx] : &parent_sf->var_buf[cv->var_idx];
 
-                        if(cv->is_arg && reparse_parent_p->exit_arg_buf)
-                            var_ref->pvalue= &reparse_parent_p->exit_arg_buf[cv->var_idx];
-                        else if (!cv->is_arg && reparse_parent_p->exit_var_buf)
-                            var_ref->pvalue= &reparse_parent_p->exit_var_buf[cv->var_idx];
+                    var_ref->value = JS_UNDEFINED;
+
+                    if(reparse_parent_p->exit_arg_buf==NULL && reparse_parent_p->exit_var_buf==NULL){
+                        list_add_tail(&var_ref->header.link, &parent_sf->var_ref_list);
+                    }else{
+                        if(var_ref->is_arg)
+                            var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_arg_buf[var_ref->var_idx]);    
                         else 
-                            var_ref->pvalue=cv->is_arg ? &parent_sf->arg_buf[cv->var_idx] : &parent_sf->var_buf[cv->var_idx];
+                            var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_var_buf[var_ref->var_idx]);
 
-                        var_ref->value = JS_UNDEFINED;
-
-                        if(reparse_parent_p->exit_arg_buf==NULL && reparse_parent_p->exit_var_buf==NULL){
-                            list_add_tail(&var_ref->header.link, &parent_sf->var_ref_list);
-                        }else{
-                            if(var_ref->is_arg)
-                                var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_arg_buf[var_ref->var_idx]);    
-                            else 
-                                var_ref->value = JS_DupValueRT(rt, reparse_parent_p->exit_var_buf[var_ref->var_idx]);
-
-                            var_ref->pvalue = &var_ref->value;
-                            var_ref->is_detached = TRUE;
-                            add_gc_object(rt, &var_ref->header, JS_GC_OBJ_TYPE_VAR_REF);
-                        }
+                        var_ref->pvalue = &var_ref->value;
+                        var_ref->is_detached = TRUE;
+                        add_gc_object(rt, &var_ref->header, JS_GC_OBJ_TYPE_VAR_REF);
                     }
-                    
                 }else{
-
-                    //is_local correspond to the current is_local variable's parent exit_var_buf
                     JSFunctionBytecode *b_parent=(JSFunctionBytecode *)(b->parent);
                     JSFunctionDef *parent_fd=b_parent->full_fd;
-                    //JSStackFrame *parent_sf=(JSStackFrame *)(b_parent->sf);
-                    //JSObject *reparse_parent_p=(JSObject *)(b_parent->parent_p);
                     
                     while(b_parent!=NULL){
                         for(int j=0; j<parent_fd->closure_var_count; j++){
@@ -16839,7 +16828,7 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                                 reparse_parent_p=reparse_parent_p->create_closure_parent;
                                 parent_sf=reparse_parent_p->execution_sf;
 
-                                exit_flag=0;
+                                int exit_flag=0;
 
                                 if(reparse_parent_p->exit_arg_buf==NULL&&reparse_parent_p->exit_var_buf==NULL){
                                     struct list_head *el;
@@ -16900,8 +16889,6 @@ static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,
                         if(b_parent){
                             b_parent=b_parent->parent; 
                             parent_fd=parent_fd->parent;
-                            //parent_sf=(JSStackFrame *)(b_parent->sf);
-                            //reparse_parent_p=(JSObject *)(b_parent->parent_p);
                             reparse_parent_p=reparse_parent_p->create_closure_parent;
                             parent_sf=reparse_parent_p->execution_sf;
                         }
@@ -33080,7 +33067,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
     /* add the module global variables in the closure */
     if (fd->module) {
         if (add_module_variables(ctx, fd)){
-            return -1;
+            return;
         }
     }
 
@@ -33098,7 +33085,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
         func_obj = js_create_function(ctx, fd1);
 
         if (JS_IsException(func_obj)){
-            return -1;
+            return;
         }
 		
         /* save it in the constant pool */
@@ -33120,7 +33107,7 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
 #endif
 
     if (resolve_variables(ctx, fd)){
-        return -1;
+        return;
     }
 
     fd->state=2;
@@ -33138,11 +33125,11 @@ static void js_recreate_function(JSContext *ctx, JSFunctionDef *fd,JSObject * pr
 #endif
 
     if (resolve_labels(ctx, fd)){
-        return -1;
+        return;
     }
            
     if (compute_stack_size(ctx, fd, &stack_size) < 0){
-        return -1;
+        return;
     }
 
     reparse_b=fd->reparse_bytecode;
